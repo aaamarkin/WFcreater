@@ -4,21 +4,58 @@ from xml.dom.minidom import parse
 import xml.dom.minidom
 from xml.dom.minidom import Document
 import WFNodes
+import re
+
+# Usefull functions
+def formatXml(file_name):
+    myfile = open(file_name, 'r')
+    data=myfile.read().replace('\n', '')
+    data = re.sub(' +',' ',data)
+    data = re.sub('> <','><',data)
+    myfile.close()
+    return data
 
       
 class DomManager:
 
-    def __init__(self, dom_tree):
-        self.dom_tree = dom_tree
+    def __init__(self, file_name):
+        self.file_name = file_name
+        try:
+            self.dom_tree = xml.dom.minidom.parseString(formatXml(file_name))
+            self.dom_tree_backup = xml.dom.minidom.parseString(formatXml(file_name))
+            self.need_backup = True
+        except Exception as e:
+            self.dom_tree = xml.dom.minidom.parseString \
+            (formatXml("/home/andrey/Desktop/WFcreater/Default_WF.xml"))
+            self.need_backup = False
         self.collection = self.dom_tree.documentElement
+            
+    def overwrightOriginalFile(self):
+        if self.need_backup:
+            backup_file_name = self.file_name + "_backup"
+            file_backup = open(backup_file_name, 'w')
+            file_backup.write(self.dom_tree_backup.toxml(encoding='utf-8'))
         
-    def get_dom_tree(self):
-        return self.dom_tree
+        file = open(self.file_name, 'w')
+        file.write(self.dom_tree.toprettyxml(encoding='utf-8', indent="   "))
+        file.close()
         
-    def is_dom_tree_empty(self):
-        return self.collection.getElementsByTagName("Workflow").length == 0
+    def isDomTreeEmpty(self):
+        return self.collection.getElementsByTagName("Name").length == 0 or \
+            self.collection.getElementsByTagName("Start-Node").length == 0
         
-    def find_lowest_position(self):
+    def renameWF(self, new_name):
+
+        for node in self.collection.childNodes:
+            if node.nodeName == "Name":
+                wf_name_node = node
+        for text in wf_name_node.childNodes:
+            text.data = unicode(new_name)
+            
+        self.insertUpdateInitialCasePacket("WORKFLOW_NAME", new_name, "String")
+
+
+    def findLowestPosition(self):
         positions = self.collection.getElementsByTagName("Position")
         lowest_position = 0
        
@@ -28,7 +65,7 @@ class DomManager:
                 lowest_position = new_pos
         return lowest_position
         
-    def case_packet_contains(self, var_name):
+    def casePacketContains(self, var_name):
         
         case_packet = self.collection.getElementsByTagName("Case-Packet")[0]
         case_packet_variables = case_packet.getElementsByTagName("Variable")
@@ -38,8 +75,19 @@ class DomManager:
                 return True
         
         return False
+
+    def initialCasePacketContains(self, var_name):
         
-    def has_node_name(self, node_name):
+        initial_case_packet = self.collection.getElementsByTagName("Initial-Case-Packet")[0]
+        initial_case_packet_variables = initial_case_packet.getElementsByTagName("Variable-Value")
+        
+        for variable in initial_case_packet_variables:
+            if variable.getAttribute("name") == var_name:
+                return True
+        
+        return False
+        
+    def hasNodeName(self, node_name):
         process_nodes = self.collection.getElementsByTagName("Process-Node")
                 
         for node in process_nodes:
@@ -58,18 +106,64 @@ class DomManager:
         
     def addNode(self, node):
         all_nodes = self.collection.getElementsByTagName("Nodes")[0]
-        node_to_add = self.create_xml_node(node)
+        node_to_add = self.createXmlNode(node)
         all_nodes.appendChild(node_to_add)
         
         coordinates = self.collection.getElementsByTagName("Coordinates")[0]
         
         arrows = self.collection.getElementsByTagName("Arrows")[0]
         
-        coordinates_and_arrows = self.create_xml_pos_and_arrows(node)
+        coordinates_and_arrows = self.createXmlPosAndArrows(node)
         coordinates.insertBefore(coordinates_and_arrows[0], arrows)
         coordinates.appendChild(coordinates_and_arrows[1])
         
-    def create_xml_node(self, node):
+    def insertUpdateCasePacket(self, var_name, var_type):
+        case_packet = self.collection.getElementsByTagName("Case-Packet")[0]
+        
+        if not self.casePacketContains(var_name):
+            case_packet_var = self.createXmlCasePacketNode(var_name, var_type)
+            case_packet.appendChild(case_packet_var)
+        else:
+            case_packet_variables = case_packet.getElementsByTagName("Variable")
+            for variable in case_packet_variables:
+                if variable.getAttribute("name") == var_name:
+                    variable.removeAttribute("type")
+                    variable.setAttribute("type", var_type)
+
+    def insertUpdateInitialCasePacket(self, var_name, var_value, var_type):
+        initial_case_packet = self.collection.getElementsByTagName("Initial-Case-Packet")[0]
+
+        if not self.initialCasePacketContains(var_name):
+            self.insertUpdateCasePacket(var_name, var_type)
+            initial_case_packet_var = self.createXmlInitialCasePacketNode(var_name, var_value)
+            initial_case_packet.appendChild(initial_case_packet_var)
+        else:
+            initial_case_packet_variables = initial_case_packet.\
+            getElementsByTagName("Variable-Value")
+            for variable in initial_case_packet_variables:
+                if variable.getAttribute("name") == var_name:
+                    variable.removeAttribute("value")
+                    variable.setAttribute("value", var_value)
+
+    def createXmlInitialCasePacketNode(self, var_name, var_value):
+        doc = Document()
+
+        xml_initial_case_packet_node = doc.createElement("Variable-Value")
+        xml_initial_case_packet_node.setAttribute("name", var_name)
+        xml_initial_case_packet_node.setAttribute("value", var_value)
+
+        return xml_initial_case_packet_node
+
+    def createXmlCasePacketNode(self, var_name, var_type):
+        doc = Document()
+
+        xml_case_packet_node = doc.createElement("Variable")
+        xml_case_packet_node.setAttribute("name", var_name)
+        xml_case_packet_node.setAttribute("type", var_type)
+
+        return xml_case_packet_node
+
+    def createXmlNode(self, node):
         doc = Document()
     
         xml_process_node = doc.createElement("Process-Node")
@@ -112,7 +206,7 @@ class DomManager:
         
         return xml_process_node
         
-    def create_xml_pos_and_arrows(self, node):
+    def createXmlPosAndArrows(self, node):
         doc = Document()
     
         xml_position_node = doc.createElement("Position")
@@ -195,80 +289,36 @@ class DomManager:
         return (xml_position_node, xml_arrows_node)
         
 
-def test_create():
-    #!/usr/bin/env python
-    # -*- coding: UTF-8 -*-
-    # vim: ai ts=4 sts=4 et sw=4
-    
-    #create minidom-document
-    doc = Document()
-    
-    # create base element
-    base = doc.createElement('Dictionary')
-    doc.appendChild(base)
-    
-    # create an entry element
-    entry = doc.createElement('Entry')
-    
-    # ... and append it to the base element
-    base.appendChild(entry)
-    
-    # create another element 
-    german = doc.createElement('German')
-    
-    # create content
-    german_content = doc.createTextNode('Hund')
-    
-    # append content to element
-    german.appendChild(german_content)
-    
-    # append the german entry to our entry element
-    entry.appendChild(german)
-    
-    # now the same with an english entry
-    english = doc.createElement('English')
-    english_content = doc.createTextNode('dog')
-    english.appendChild(english_content)
-    entry.appendChild(english)
-    return doc
-        
-
 if __name__ == '__main__':
     if  len(sys.argv) == 1:
         print "Incorrect number of parameters"
         print "Launch like this: python WFParser /pathToFile/filename.xml"
     else:
         file_name = sys.argv[1]
-        file = open(file_name, 'a+')
         
         
-        DOMTree = xml.dom.minidom.parse(file_name)
-        #file.write(DOMTree.toxml(encoding='utf-8'))
-        #doc = test_create()
-        #file.write(doc.toxml(encoding='utf-8'))
-        dom_manager = DomManager(DOMTree)
-        
-        arrow1 = WFNodes.Arrow()
-        
+        dom_manager = DomManager(file_name)
+                 
         new_process_node = WFNodes.LogNode(name = "logger", x = "100", y = "100", next_node = "Second json setter")
-        
         second_node = WFNodes.JsonSetterNode(name = "Second json setter", x = "100", y = "200")
-        
         dom_manager.addNode(new_process_node)
         dom_manager.addNode(second_node)
+        dom_manager.renameWF("Renamed_WF")
+        dom_manager.overwrightOriginalFile()
+       
+    
+                    
+
         
-        print dom_manager.case_packet_contains("RUNTIME")
-        print dom_manager.case_packet_contains("RUNTIME1")
         
-        print dom_manager.has_node_name("Getting service instancer from response1")
-        print dom_manager.has_node_name("Getting service instancer from response133333")
-        print dom_manager.has_node_name("logger")
         
-        print dom_manager.is_dom_tree_empty()
         
-        dtree = dom_manager.get_dom_tree()
-        file.write(dtree.toxml(encoding='utf-8'))
-        file.close()
+        
+        
+        
+
+       
+        
         
         
         
