@@ -1,9 +1,11 @@
 import WFConstants
-import sys
+import sys, traceback
 from xml.dom.minidom import parse
 import xml.dom.minidom
 from xml.dom.minidom import Document
 import WFNodes
+from WFNodes import Parameters, Parameter
+from WFExceptions import DuplicateNodeError, DuplicateParamError
 import re
 
 # Useful functions
@@ -15,7 +17,6 @@ def formatXml(file_name):
     myfile.close()
     return data
 
-      
 class DomManager:
 
     def __init__(self, file_name):
@@ -103,19 +104,36 @@ class DomManager:
                 return True
                 
         return False
-        
+
     def addNode(self, node):
-        all_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NODES)[0]
-        node_to_add = self.createXmlNode(node)
-        all_nodes.appendChild(node_to_add)
+        self.tracebackWrapper(lambda: self.addNodeExcept(node))
+
         
-        coordinates = self.collection.getElementsByTagName(WFConstants.TAG_NAME_COORDINATES)[0]
+    def addNodeExcept(self, node):
+        if self.hasNodeName(node.name):
+            raise DuplicateNodeError(node.name)
+        else:
+            all_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NODES)[0]
+            node_to_add = self.createXmlNode(node)
+            all_nodes.appendChild(node_to_add)
+            
+            coordinates = self.collection.getElementsByTagName(WFConstants.TAG_NAME_COORDINATES)[0]
+            
+            arrows = self.collection.getElementsByTagName(WFConstants.TAG_NAME_ARROWS)[0]
+            
+            coordinates_and_arrows = self.createXmlPosAndArrows(node)
+            coordinates.insertBefore(coordinates_and_arrows[0], arrows)
+            coordinates.appendChild(coordinates_and_arrows[1])
         
-        arrows = self.collection.getElementsByTagName(WFConstants.TAG_NAME_ARROWS)[0]
-        
-        coordinates_and_arrows = self.createXmlPosAndArrows(node)
-        coordinates.insertBefore(coordinates_and_arrows[0], arrows)
-        coordinates.appendChild(coordinates_and_arrows[1])
+
+    def tracebackWrapper(self, method_name):
+        try:
+            method_name()
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                              limit=200, file=sys.stdout)
+
         
     def insertUpdateCasePacket(self, var_name, var_type):
         case_packet = self.collection.getElementsByTagName(WFConstants.TAG_NAME_CASE_PACKET)[0]
@@ -299,13 +317,33 @@ if __name__ == '__main__':
         
         dom_manager = DomManager(file_name)
                  
-        new_process_node = WFNodes.LogNode(name = "logger", x = "100", y = "100", next_node = "Second json setter")
-        second_node = WFNodes.JsonSetterNode(name = "Second json setter", x = "100", y = "200")
-        dom_manager.addNode(new_process_node)
-        dom_manager.addNode(second_node)
-        dom_manager.renameWF("Renamed_WF")
-        dom_manager.overwrightOriginalFile()
-       
+        new_process_node = WFNodes.ProcessNode(name = "logger",
+        parameters = Parameters(WFConstants.LOG_ORDINARY_PARAMS),
+        class_name = WFConstants.CLASS_NAME_LOG,
+        x = "100", y = "100", next_node = "Second json setter")
+        second_node = WFNodes.ProcessNode(name = "Second json setter",
+        parameters = Parameters({"output_json":"request_json"}),
+        class_name = WFConstants.CLASS_NAME_JSON_SETTER,
+        x = "100", y = "200")
+        print "-----------------------------"
+        dicts = {"output_json":"request_json", "output_json":"request_json"}
+        param = Parameter("output_json", "request_json")
+        params = Parameters(dicts)
+        #params.addParameter(param)
+        print dicts
+
+
+        '''
+        try:
+            #dom_manager.addNode(new_process_node)
+            #dom_manager.addNode(second_node)
+            #dom_manager.addNode(second_node)
+            #dom_manager.renameWF("Renamed_WF")
+            #dom_manager.overwrightOriginalFile()
+
+        except Exception as e:
+            aaa = ""
+        '''
     
                     
 

@@ -1,6 +1,6 @@
-
+import sys, traceback
 import WFConstants
-
+from WFExceptions import DuplicateNodeError, DuplicateParamError
 # Classes
 
 class Arrow:
@@ -12,23 +12,95 @@ class Arrow:
         
 class Parameter:
     
-    def __init__(self, name, value, is_value_constant, without_prefix, is_mandatory):
+    def __init__(self, name, value, is_mandatory = False):
         self.name = name
-        self.value = value
-        self.is_constant = is_value_constant
-        self.without_prefix = without_prefix
+        self.setValue(value)
         self.is_mandatory = is_mandatory
         
+    def setValue(self, value):
+    	if "constant:" in value:
+    		self.value = value.split(":")[1]
+    		self.is_constant = True
+    		self.without_prefix = False
+    	elif "variable:" in value:
+    		self.value = value.split(":")[1]
+    		self.is_constant = False
+    		self.without_prefix = False
+    	else:
+    		self.value = value
+    		self.is_constant = False
+    		self.without_prefix = True
+
+    def __repr__(self):
+    	return self.name + " : " + self.value + ", "
+
     def __str__(self):
-        return self.name + ": " + self.value + "; "
+        return self.name + " : " + self.value + ", "
         
 
-class Parameters():
+class Parameters:
     
-    def __init__(self):
-        self.parameters = []
+    def __init__(self, param_dict):
+    	self.parameters = []
+    	for key in param_dict.keys():
+   			parameter = Parameter(key, param_dict[key])
+   			self.addParameter(parameter)
         self.index = len(self.parameters)
-        
+
+    def contains(self, param_name):
+    	for parameter in self.parameters:
+    		if parameter.name == param_name:
+    			return True
+    	return False
+
+    def getValue(self, param_name):
+    	if self.contains(param_name):
+    		for parameter in self.parameters:
+    			if parameter.name == param_name:
+    				return parameter.value
+    	else:
+    		return ""
+
+    def insertUpdateValue(self, param_name, param_value):
+    	if self.contains(param_name):
+    		for parameter in self.parameters:
+    			if parameter.name == param_name:
+    				parameter.setValue(param_value)
+    	else:
+    		parameter = Parameter(param_name, param_value)
+    		self.addParameter(parameter)
+
+    def addParameter(self, parameter):
+    	self.tracebackWrapper(lambda: self.addParameterExcept(parameter))
+
+    def addParameterExcept(self, parameter):
+    	if self.contains(parameter.name):
+            raise DuplicateParamError(parameter.name, self.parameters)
+        else:
+    		self.parameters.append(parameter)
+
+
+    def tracebackWrapper(self, method_name):
+        try:
+            method_name()
+        except Exception as e:
+            exc_type, exc_value, exc_traceback = sys.exc_info()
+            traceback.print_exception(exc_type, exc_value, exc_traceback,
+                              limit=200, file=sys.stdout)
+
+    def __repr__(self):
+    	string_to_return = ""
+    	for param in self.parameters:
+    		string_to_return = string_to_return + repr(param)
+    	return string_to_return
+
+    def __str__(self):
+    	string_to_return = "{ "
+    	for param in self.parameters:
+    		string_to_return = string_to_return + str(param)
+    	string_to_return = string_to_return + " }"
+    	return string_to_return
+
     def __iter__(self):
         return self
     
@@ -37,32 +109,7 @@ class Parameters():
             raise StopIteration
         self.index = self.index - 1
         return self.parameters[self.index]
-    
-    
 
-class LogParameters(Parameters):
-    
-    def __init__(self, message = "", log_level = "DEBUG"):
-        self.parameters = [Parameter("component_name", "WORKFLOW_NAME", False, False, True),
-        Parameter("log_level", log_level, True, False, True),
-        Parameter("log_manager", "log_manager", False, False, True),
-        Parameter("log_message", WFConstants.LOG_MESSAGE_BEGINING + message, False, True, True),
-        Parameter("param0", "transaction_id", False, False, True),
-        Parameter("param1", "JOB_ID", False, False, True),
-        Parameter("param2", "transaction_initiator", False, False, True),
-        ]
-        self.index = len(self.parameters)
-        
-    def __iter__(self):
-        return self
-    
-    def next(self):
-        if self.index == 0:
-            raise StopIteration
-        self.index = self.index - 1
-        return self.parameters[self.index]
-        
-  
 class Node:
 
     def __init__(self, name = "", class_name = "", parameters = [],
@@ -98,24 +145,7 @@ class RuleNode(Node):
         self.arrow_false = arrow_false
         self.next_node_true = next_node_true
         self.next_node_false = next_node_false
-        
-class LogNode(ProcessNode):
-    
-    def __init__(self, name = "",  parameters = LogParameters(),
-    next_node = "", x = "", y = "", width = "10", height = "48", arrow = Arrow()):
-        ProcessNode.__init__(self, name = name, class_name = WFConstants.CLASS_NAME_LOG,
-        parameters = parameters, next_node = next_node, x = x, y = y, width = width, height = height)
-        
-    def __str__(self):
-        #to_print = [parameter in self.parameters.parameters if parameter.name == "log_message"]
-        return "Log: " #+ to_print[0]
-        
-class JsonSetterNode(ProcessNode):
-
-    def __init__(self, name = "",  parameters = [Parameter("output_json", "", False, False, True) ],
-    next_node = "", x = "", y = "", width = "10", height = "48", arrow = Arrow()):
-        ProcessNode.__init__(self, name = name, class_name = WFConstants.CLASS_NAME_JSON_SETTER,
-        parameters = parameters, next_node = next_node, x = x, y = y, width = width, height = height)    
+          
         
         
         

@@ -35,5 +35,15 @@ CLASS_NAME_LOG = "com.hp.ov.activator.mwfm.component.builtin.Log"
 CLASS_NAME_JSON_SETTER = "ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter"
 
 
-#Other constants
+#Log node constants
+LOG_ORDINARY_PARAMS = {"component_name":"variable:WORKFLOW_NAME",
+	"log_level":"constant:DEBUG",
+	"log_manager":"variable:log_manager",
+	"log_message":"Transaction ID=%s (JobId=%s), initiator=%s: ",
+	"param0":"variable:transaction_id",
+	"param1":"variable:JOB_ID",
+	"param2":"variable:transaction_initiator"
+	}
 LOG_MESSAGE_BEGINING = "Transaction ID=%s (JobId=%s), initiator=%s: "
+
+#Audit node constants
