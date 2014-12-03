@@ -1,10 +1,5 @@
-#Constants
 
-CLASS_NAME_LOG = "com.hp.ov.activator.mwfm.component.builtin.Log"
-CLASS_NAME_JSON_SETTER = "ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter"
-
-LOG_MESSAGE_BEGINING = "Transaction ID=%s (JobId=%s), initiator=%s: "
-
+import WFConstants
 
 # Classes
 
@@ -51,7 +46,7 @@ class LogParameters(Parameters):
         self.parameters = [Parameter("component_name", "WORKFLOW_NAME", False, False, True),
         Parameter("log_level", log_level, True, False, True),
         Parameter("log_manager", "log_manager", False, False, True),
-        Parameter("log_message", LOG_MESSAGE_BEGINING + message, False, True, True),
+        Parameter("log_message", WFConstants.LOG_MESSAGE_BEGINING + message, False, True, True),
         Parameter("param0", "transaction_id", False, False, True),
         Parameter("param1", "JOB_ID", False, False, True),
         Parameter("param2", "transaction_initiator", False, False, True),
@@ -108,7 +103,7 @@ class LogNode(ProcessNode):
     
     def __init__(self, name = "",  parameters = LogParameters(),
     next_node = "", x = "", y = "", width = "10", height = "48", arrow = Arrow()):
-        ProcessNode.__init__(self, name = name, class_name = CLASS_NAME_LOG,
+        ProcessNode.__init__(self, name = name, class_name = WFConstants.CLASS_NAME_LOG,
         parameters = parameters, next_node = next_node, x = x, y = y, width = width, height = height)
         
     def __str__(self):
@@ -119,7 +114,7 @@ class JsonSetterNode(ProcessNode):
 
     def __init__(self, name = "",  parameters = [Parameter("output_json", "", False, False, True) ],
     next_node = "", x = "", y = "", width = "10", height = "48", arrow = Arrow()):
-        ProcessNode.__init__(self, name = name, class_name = CLASS_NAME_JSON_SETTER,
+        ProcessNode.__init__(self, name = name, class_name = WFConstants.CLASS_NAME_JSON_SETTER,
         parameters = parameters, next_node = next_node, x = x, y = y, width = width, height = height)    
         
         

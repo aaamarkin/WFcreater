@@ -1,0 +1,1930 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE Workflow SYSTEM "workflow.dtd">
+
+<Workflow Init-On-Startup="false" Unique="false" auditEnabled="true" autoAuditEnabled="true" disablePersistence="false" statEnabled="true">
+   <Name>Cloud_MobileProfile.Delete</Name>
+   <Solution>Cloud</Solution>
+   <Description>Workflow that gets lists of all resources from DB to monitor and sends them to Monitoring WF</Description>
+   <Start-Node>SETTING INITIAL PARAMS1</Start-Node>
+   <Nodes>
+      <Process-Node disablePersistence="true">
+         <Name>SETTING INITIAL PARAMS1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>Audit Cloud_MobileProfile.Delete</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>Audit Cloud_MobileProfile.Delete</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Audit</Class-Name>
+            <Param name="event_type" value="constant:MOBILE_PROFILE_DELETE"/>
+            <Param name="order_id" value="transaction_id"/>
+            <Param name="step_name" value="constant:TRANSACTION_START"/>
+            <Param name="user" value="transaction_initiator"/>
+            <Param name="attrib_name0" value="request_json"/>
+            <Param name="attrib_value0" value="request_json"/>
+         </Action>
+         <Next-Node>Set initial parameters1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Set initial parameters1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="check_passed" value="true"/>
+            <Param name="error_code" value="HPSA_WF-001"/>
+            <Param name="error_message" value="HPSA internal error"/>
+            <Param name="log_manager" value="%SOLUTION_NAME%_log_manager"/>
+            <Param name="property_module" value="%SOLUTION_NAME%_property_module"/>
+            <Param name="response_result_path" value="ok"/>
+         </Action>
+         <Next-Node>LogInfo: Cloud_MobileProfile.Delete started</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogInfo: Cloud_MobileProfile.Delete started</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="INFORMATIVE"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: Cloud_MobileProfile.Delete started"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+         </Action>
+         <Next-Node>LogDebug: Cloud_MobileProfile.Delete started</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogDebug: Cloud_MobileProfile.Delete started</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: Cloud_MobileProfile.Delete started with request_json=%s"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="request_json"/>
+         </Action>
+         <Next-Node>Get SY properties1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Get SY properties1</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.property.nodes.GetProperty</Class-Name>
+            <Param name="property_module" value="property_module"/>
+            <Param name="key0" value="constant:sy_protocol"/>
+            <Param name="value0" value="sy_protocol"/>
+            <Param name="key1" value="constant:sy_ip_address"/>
+            <Param name="value1" value="sy_ip_address"/>
+            <Param name="key2" value="constant:sy_port"/>
+            <Param name="value2" value="sy_port"/>
+            <Param name="key3" value="constant:lock_timeout"/>
+            <Param name="value3" value="lock_timeout"/>
+         </Action>
+         <Next-Node>Set urls for SY1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Set urls for SY1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="check_ban_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-cdb-connector/checkBan"/>
+            <Param name="delete_mob_prof_item_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-account-management/deleteMobileProfileItemFromJson"/>
+            <Param name="get_bans_by_hierarchy_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-cdb-connector/getBansByHierarchyId"/>
+            <Param name="get_current_service_instances_by_ban_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-service-instance-tracking/getCurrentServiceInstancesByBan"/>
+            <Param name="get_customer_by_id_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-account-management/getCustomerById"/>
+            <Param name="get_customers_by_ban_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-account-management/getCustomersByBan"/>
+            <Param name="get_customers_by_hierarchy_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-account-management/getCustomersByHierarchy"/>
+            <Param name="get_hierarchy_by_ban_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-cdb-connector/getHierarchyIdByBan"/>
+            <Param name="update_customer_url" value="%sy_protocol%://%sy_ip_address%:%sy_port%/cloud-composite-account-management/updateCustomer"/>
+         </Action>
+         <Next-Node>create base SY request1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>create base SY request1</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter</Class-Name>
+            <Param name="json_module" value="common_json_module"/>
+            <Param name="output_json" value="base_request"/>
+            <Param name="path0" value="constant:transactionId"/>
+            <Param name="value0" value="transaction_id"/>
+            <Param name="path1" value="constant:initiator"/>
+            <Param name="value1" value="transaction_initiator"/>
+         </Action>
+         <Next-Node>Setting initial response_json</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Setting initial response_json</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter</Class-Name>
+            <Param name="output_json" value="response_json"/>
+            <Param name="path0" value="errorCode"/>
+            <Param name="value0" value="error_code"/>
+            <Param name="path1" value="errorMessage"/>
+            <Param name="value1" value="error_message"/>
+         </Action>
+         <Next-Node>Getting customer id</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Getting customer id</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonGetter</Class-Name>
+            <Param name="json_document" value="request_json"/>
+            <Param name="path0" value="customerId"/>
+            <Param name="value0" value="customer_id"/>
+         </Action>
+         <Next-Node>Set counters to 0</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Set counters to 0</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="counter_mob_item" value="0"/>
+         </Action>
+         <Next-Node>SUCCESS SETTING INITIAL PARAMS1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>SUCCESS SETTING INITIAL PARAMS1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>NEXT LOCKING CUSTOMER</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT LOCKING CUSTOMER</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>LOCKING CUSTOMER</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>LOCKING CUSTOMER</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>Create customer_lock1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Create customer_lock1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="customer_lock" value="Cloud_customer_%customer_id%"/>
+         </Action>
+         <Next-Node>Log: Getting customer_lock1</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>Log: Getting customer_lock1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="TransactionID=%s (JobId=%s), initiator=%s: Getting customer_lock=%s"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="customer_lock"/>
+         </Action>
+         <Next-Node>Get customer lock2</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>Get customer lock2</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.lock.nodes.GetLock</Class-Name>
+            <Param name="lock_storage" value="lock_storage"/>
+            <Param name="object" value="customer_lock"/>
+            <Param name="timeout" value="lock_timeout"/>
+         </Action>
+         <Next-Node>WasPreviousNodeOK</Next-Node>
+      </Process-Node>
+      <Rule-Node disablePersistence="true">
+         <Name>WasPreviousNodeOK</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.WasPreviousNodeOK</Class-Name>
+         </Action>
+         <True-Next-Node>SUCCESS LOCKING CUSTOMER</True-Next-Node>
+         <False-Next-Node>Set query failed message31211</False-Next-Node>
+      </Rule-Node>
+      <Process-Node disablePersistence="true">
+         <Name>SUCCESS LOCKING CUSTOMER</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>NEXT REST GET CUSTOMER BY ID</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT REST GET CUSTOMER BY ID</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>REST GET CUSTOMER BY ID</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>REST GET CUSTOMER BY ID</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>LogDebug: get customer by id</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogDebug: get customer by id</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initator=%s:  started rest request get customer by id"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+         </Action>
+         <Next-Node>Set get_customer_by_id_json</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Set get_customer_by_id_json</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter</Class-Name>
+            <Param name="input_json" value="base_request"/>
+            <Param name="output_json" value="get_customer_by_id_request_json"/>
+            <Param name="path0" value="id"/>
+            <Param name="value0" value="customer_id"/>
+         </Action>
+         <Next-Node>Call getCustomerById()</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Call getCustomerById()</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.http.nodes.MakeRestRequest</Class-Name>
+            <Param name="request_json" value="get_customer_by_id_request_json"/>
+            <Param name="request_type" value="POST"/>
+            <Param name="request_url" value="get_customer_by_id_url"/>
+            <Param name="response_code" value="http_code"/>
+            <Param name="response_json" value="get_customer_by_id_response_json"/>
+         </Action>
+         <Next-Node>Setting log params21</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Setting log params21</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="composite_name_log" value="%get_customer_by_id_url%"/>
+            <Param name="request_json_log" value="%get_customer_by_id_request_json%"/>
+            <Param name="response_json_log" value="%get_customer_by_id_response_json%"/>
+         </Action>
+         <Next-Node>http code == 200?21</Next-Node>
+      </Process-Node>
+      <Rule-Node disablePersistence="true">
+         <Name>http code == 200?21</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Equal</Class-Name>
+            <Param name="op1" value="http_code"/>
+            <Param name="op2" value="constant:200"/>
+         </Action>
+         <True-Next-Node>Getting error code from response21</True-Next-Node>
+         <False-Next-Node>Set query failed message3121</False-Next-Node>
+      </Rule-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Getting error code from response21</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonGetter</Class-Name>
+            <Param name="json_document" value="get_customer_by_id_response_json"/>
+            <Param name="skip_flag" value="constant:true"/>
+            <Param name="path0" value="errorMessage"/>
+            <Param name="value0" value="sy_error_message"/>
+            <Param name="path1" value="errorCode"/>
+            <Param name="value1" value="sy_error_code"/>
+         </Action>
+         <Next-Node>&quot;OK&quot;?(1)3121</Next-Node>
+      </Process-Node>
+      <Rule-Node disablePersistence="true">
+         <Name>&quot;OK&quot;?(1)3121</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Equal</Class-Name>
+            <Param name="op1" value="sy_error_code"/>
+            <Param name="op2" value="constant:OK"/>
+         </Action>
+         <True-Next-Node>LogDebug: get customer by id results</True-Next-Node>
+         <False-Next-Node>set debug comment error4121</False-Next-Node>
+      </Rule-Node>
+      <Process-Node>
+         <Name>LogDebug: get customer by id results</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: Rest request: %s. Rest response :%s."/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="request_json_log"/>
+            <Param name="param4" value="response_json_log"/>
+         </Action>
+         <Next-Node>Getting customer from response</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Getting customer from response</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonGetter</Class-Name>
+            <Param name="json_document" value="get_customer_by_id_response_json"/>
+            <Param name="path0" value="customer"/>
+            <Param name="value0" value="customer_json"/>
+         </Action>
+         <Next-Node>SUCCESS REST GET CUSTOMER BY ID</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>SUCCESS REST GET CUSTOMER BY ID</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>NEXT LAUNCH ORDER CREATE WF1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT LAUNCH ORDER CREATE WF1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>LAUNCH ORDER CREATE WF1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>LAUNCH ORDER CREATE WF1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>LogDebug: order create WF1</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogDebug: order create WF1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initator=%s:  started order create WF"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+         </Action>
+         <Next-Node>Setting child code to empty1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Setting child code to empty1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="child_error_code" value="%EMPTY_STRING%"/>
+         </Action>
+         <Next-Node>StartJobAndWait1</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>StartJobAndWait1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.StartJobAndWait</Class-Name>
+            <Param name="queue" value="sync"/>
+            <Param name="throw_excep" value="constant:false"/>
+            <Param name="workflow_name" value="constant:Cloud_Order.Create.Process"/>
+            <Param name="destination0" value="parent_job_id"/>
+            <Param name="outputvar0" value="child_error_code"/>
+            <Param name="variable0" value="JOB_ID"/>
+            <Param name="destination1" value="transaction_id"/>
+            <Param name="outputvar1" value="child_error_message"/>
+            <Param name="variable1" value="transaction_id"/>
+            <Param name="destination2" value="transaction_initiator"/>
+            <Param name="outputvar2" value="order_id"/>
+            <Param name="variable2" value="transaction_initiator"/>
+            <Param name="destination3" value="request_json"/>
+            <Param name="variable3" value="hpsa_create_order_model"/>
+         </Action>
+         <Next-Node>LogDebug: monitoring starts11</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogDebug: monitoring starts11</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initator=%s: received child error_code: %s, order_id: %s"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="child_error_code"/>
+            <Param name="param4" value="order_id"/>
+         </Action>
+         <Next-Node>Child error code is OK?1</Next-Node>
+      </Process-Node>
+      <Rule-Node disablePersistence="true">
+         <Name>Child error code is OK?1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Equal</Class-Name>
+            <Param name="op1" value="child_error_code"/>
+            <Param name="op2" value="constant:OK"/>
+         </Action>
+         <True-Next-Node>SUCCESS ORDER CREATE WF1</True-Next-Node>
+         <False-Next-Node>set debug comment error11111</False-Next-Node>
+      </Rule-Node>
+      <Process-Node disablePersistence="true">
+         <Name>SUCCESS ORDER CREATE WF1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>set debug comment error11111</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="error_code" value="%child_error_code%"/>
+            <Param name="error_comment" value="Create order WF failed"/>
+            <Param name="error_message" value="%child_error_message%"/>
+         </Action>
+         <Next-Node>LogError: composite error11111</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogError: composite error11111</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="ERROR"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: composite error error_code=%s, error_message=%s, comment=%s "/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="error_code"/>
+            <Param name="param4" value="error_message"/>
+            <Param name="param5" value="error_comment"/>
+         </Action>
+         <Next-Node>NEXT SETTING FINAL PARAMS111111</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT SETTING FINAL PARAMS111111</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>set debug comment error4121</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="error_code" value="%sy_error_code%"/>
+            <Param name="error_comment" value="query params:  request: %request_json_log%, response: %response_json_log%, url: %composite_name_log%."/>
+            <Param name="error_message" value="%sy_error_message%"/>
+         </Action>
+         <Next-Node>LogError: composite error4121</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogError: composite error4121</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="ERROR"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: composite error error_code=%s, error_message=%s, comment=%s "/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="error_code"/>
+            <Param name="param4" value="error_message"/>
+            <Param name="param5" value="error_comment"/>
+         </Action>
+         <Next-Node>NEXT SETTING FINAL PARAMS12111</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT SETTING FINAL PARAMS12111</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>NEXT SETTING FINAL PARAMS2</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT SETTING FINAL PARAMS2</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>SETTING FINAL PARAMS1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>SETTING FINAL PARAMS1</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>Adding model to response_json1</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Adding model to response_json1</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter</Class-Name>
+            <Param name="input_json" value="response_json"/>
+            <Param name="output_json" value="response_json"/>
+            <Param name="path0" value="checkPassed"/>
+            <Param name="value0" value="check_passed"/>
+            <Param name="path1" value="errorCode"/>
+            <Param name="value1" value="error_code"/>
+            <Param name="path2" value="errorMessage"/>
+            <Param name="value2" value="error_message"/>
+         </Action>
+         <Next-Node>LogDebug: Finished</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogDebug: Finished</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: Cloud_MobileProfile.Delete finished with response_json=%s"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="response_json"/>
+         </Action>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Set query failed message3121</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="error_code" value="HPSA_WF-002"/>
+            <Param name="error_message" value="rest query error %http_code%; query params: request: %request_json_log%, url: %composite_name_log%."/>
+         </Action>
+         <Next-Node>LogError: rest error3121</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogError: rest error3121</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="ERROR"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: rest query error error_code=%s, error_message=%s"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="error_code"/>
+            <Param name="param4" value="error_message"/>
+         </Action>
+         <Next-Node>NEXT SETTING FINAL PARAMS12211</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT SETTING FINAL PARAMS12211</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>NEXT SETTING FINAL PARAMS2</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>Set query failed message31211</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="error_code" value="HPSA_WF-017"/>
+            <Param name="error_message" value="Couldn’t get lock=%customer_lock%"/>
+         </Action>
+         <Next-Node>LogError: rest error31211</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogError: rest error31211</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_level" value="ERROR"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: error error_code=%s, error_message=%s"/>
+            <Param name="param0" value="transaction_id"/>
+            <Param name="param1" value="JOB_ID"/>
+            <Param name="param2" value="transaction_initiator"/>
+            <Param name="param3" value="error_code"/>
+            <Param name="param4" value="error_message"/>
+         </Action>
+         <Next-Node>NEXT SETTING FINAL PARAMS122111</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>NEXT SETTING FINAL PARAMS122111</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+         <Next-Node>NEXT SETTING FINAL PARAMS2</Next-Node>
+      </Process-Node>
+      <Process-Node disablePersistence="true">
+         <Name>DoNothing</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+      </Process-Node>
+   </Nodes>
+   <End-Handler>
+      <Name>AuditHandler</Name>
+      <Class-Name>ru.deltasolutions.common.activator.mwfm.audit.handlers.AuditHandler</Class-Name>
+      <Param name="event_type" value="constant:MOBILE_PROFILE_DELETE"/>
+      <Param name="message" value="error_message"/>
+      <Param name="order_id" value="transaction_id"/>
+      <Param name="state" value="error_code"/>
+      <Param name="step_name" value="constant:TRANSACTION_FINISHED"/>
+      <Param name="user" value="transaction_initiator"/>
+   </End-Handler>
+   <End-Handler>
+      <Name>LogHandler</Name>
+      <Class-Name>ru.deltasolutions.common.activator.mwfm.log.handlers.LogHandler</Class-Name>
+      <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+      <Param name="log_level" value="INFORMATIVE"/>
+      <Param name="log_manager" value="variable:log_manager"/>
+      <Param name="log_message" value="TransactionID=%s (JobID=%s), initiator=%s: Cloud_MobileProfile.Delete finished with error code = %s, error message = %s"/>
+      <Param name="param0" value="transaction_id"/>
+      <Param name="param1" value="JOB_ID"/>
+      <Param name="param2" value="transaction_initiator"/>
+      <Param name="param3" value="error_code"/>
+      <Param name="param4" value="error_message"/>
+   </End-Handler>
+   <End-Handler>
+      <Name>ReleaseLocksHandler</Name>
+      <Class-Name>ru.deltasolutions.common.activator.mwfm.lock.handlers.ReleaseLocksHandler</Class-Name>
+      <Param name="lock_storage" value="lock_storage"/>
+      <Param name="log_manager" value="log_manager"/>
+   </End-Handler>
+   <End-Handler>
+      <Name>SyncHandler</Name>
+      <Class-Name>com.hp.ov.activator.mwfm.component.builtin.SyncHandler</Class-Name>
+      <Param name="job_id" value="parent_job_id"/>
+      <Param name="queue" value="constant:sync"/>
+      <Param name="destination0" value="child_error_code"/>
+      <Param name="variable0" value="error_code"/>
+      <Param name="destination1" value="child_error_message"/>
+      <Param name="variable1" value="error_message"/>
+   </End-Handler>
+   <Case-Packet>
+      <Variable name="BREAK_POINT" type="String"/>
+      <Variable name="DEFAULT_ROLE" type="String"/>
+      <Variable name="EMPTY_STRING" type="String"/>
+      <Variable name="ETC" type="String"/>
+      <Variable name="EX_STEP_NAME" type="String"/>
+      <Variable name="FILE_URL_PREFIX" type="String"/>
+      <Variable name="HOST_NAME" type="String"/>
+      <Variable name="JOB_ID" type="Integer"/>
+      <Variable name="KILL_ROLE" type="String"/>
+      <Variable name="MASTER_CHILD_JOBS" type="Object"/>
+      <Variable name="NULL" type="Object"/>
+      <Variable name="PRIORITY" type="Integer"/>
+      <Variable name="RESERVATIONS" type="Object"/>
+      <Variable name="RET_TEXT" type="String"/>
+      <Variable name="RET_VALUE" type="Integer"/>
+      <Variable name="RUNTIME" type="Object"/>
+      <Variable name="SCHEDULED_INFO" type="Object"/>
+      <Variable name="SERVICE_ID" type="String"/>
+      <Variable name="SOLUTION_ETC" type="String"/>
+      <Variable name="SOLUTION_NAME" type="String"/>
+      <Variable name="SOLUTION_VAR" type="String"/>
+      <Variable name="START_ROLE" type="String"/>
+      <Variable name="START_TIME" type="Integer"/>
+      <Variable name="STATUS" type="String"/>
+      <Variable name="STEP_NAME" type="String"/>
+      <Variable name="SUBSTEP" type="String"/>
+      <Variable name="THROW_EXCEP" type="Boolean"/>
+      <Variable name="TIMEOUT" type="Boolean"/>
+      <Variable name="TRACE_ROLE" type="String"/>
+      <Variable name="UNIQUE_WORKFLOW" type="Integer"/>
+      <Variable name="VAR" type="String"/>
+      <Variable name="WORKFLOW_EXCEPTION" type="Object"/>
+      <Variable name="WORKFLOW_EXECUTION_STATUS" type="String"/>
+      <Variable name="WORKFLOW_NAME" type="String"/>
+      <Variable name="WORKFLOW_ORDER_ID" type="String"/>
+      <Variable name="WORKFLOW_STATE" type="String"/>
+      <Variable name="WORKFLOW_TYPE" type="String"/>
+      <Variable name="WORKFLOW_VERSION" type="Integer"/>
+      <Variable name="activation_description" type="String"/>
+      <Variable name="activation_major_code" type="Integer"/>
+      <Variable name="activation_minor_code" type="Integer"/>
+      <Variable name="ban" type="String"/>
+      <Variable name="ban_already_registered_message" type="String"/>
+      <Variable name="ban_from_hierarchy" type="String"/>
+      <Variable name="ban_from_hierarchy_path" type="String"/>
+      <Variable name="ban_list_path" type="String"/>
+      <Variable name="ban_list_size" type="Integer"/>
+      <Variable name="base_request" type="String"/>
+      <Variable name="check_ban_request_json" type="String"/>
+      <Variable name="check_ban_response_json" type="String"/>
+      <Variable name="check_ban_url" type="String"/>
+      <Variable name="check_passed" type="Boolean"/>
+      <Variable name="check_passed_mob_item" type="Boolean"/>
+      <Variable name="code" type="Integer"/>
+      <Variable name="composite_name_log" type="String"/>
+      <Variable name="counter_ban" type="Integer"/>
+      <Variable name="counter_hierarchy" type="Integer"/>
+      <Variable name="counter_mob_item" type="Integer"/>
+      <Variable name="counter_service_instance" type="Integer"/>
+      <Variable name="customer_id" type="String"/>
+      <Variable name="customer_json" type="String"/>
+      <Variable name="customer_lock" type="String"/>
+      <Variable name="customer_path" type="String"/>
+      <Variable name="customers_json" type="String"/>
+      <Variable name="customers_path" type="String"/>
+      <Variable name="customers_size" type="Integer"/>
+      <Variable name="delete_mob_prof_item_request_json" type="String"/>
+      <Variable name="delete_mob_prof_item_response_json" type="String"/>
+      <Variable name="delete_mob_prof_item_url" type="String"/>
+      <Variable name="error_code" type="String"/>
+      <Variable name="error_comment" type="String"/>
+      <Variable name="error_message" type="String"/>
+      <Variable name="get_bans_by_hierarchy_request_json" type="String"/>
+      <Variable name="get_bans_by_hierarchy_response_json" type="String"/>
+      <Variable name="get_bans_by_hierarchy_url" type="String"/>
+      <Variable name="get_current_service_instances_by_ban_url" type="String"/>
+      <Variable name="get_customer_by_id_request_json" type="String"/>
+      <Variable name="get_customer_by_id_response_json" type="String"/>
+      <Variable name="get_customer_by_id_url" type="String"/>
+      <Variable name="get_customers_by_ban_request_json" type="String"/>
+      <Variable name="get_customers_by_ban_response_json" type="String"/>
+      <Variable name="get_customers_by_ban_url" type="String"/>
+      <Variable name="get_customers_by_hierarchy_request_json" type="String"/>
+      <Variable name="get_customers_by_hierarchy_response_json" type="String"/>
+      <Variable name="get_customers_by_hierarchy_url" type="String"/>
+      <Variable name="get_hierarchy_by_ban_url" type="String"/>
+      <Variable name="get_hierarchy_request_json" type="String"/>
+      <Variable name="get_hierarchy_response_json" type="String"/>
+      <Variable name="get_service_instances_by_ban_request_json" type="String"/>
+      <Variable name="get_service_instances_by_ban_response_json" type="String"/>
+      <Variable name="http_code" type="Integer"/>
+      <Variable name="i" type="Integer"/>
+      <Variable name="j" type="Integer"/>
+      <Variable name="lock_storage" type="Object"/>
+      <Variable name="lock_timeout" type="Integer"/>
+      <Variable name="log_manager" type="String"/>
+      <Variable name="message_url" type="String"/>
+      <Variable name="mobile_profile_item_id" type="String"/>
+      <Variable name="mobile_profile_item_id_path" type="String"/>
+      <Variable name="mobile_profile_item_json" type="String"/>
+      <Variable name="mobile_profile_item_list" type="String"/>
+      <Variable name="mobile_profile_item_path" type="String"/>
+      <Variable name="mobile_profile_item_reason" type="String"/>
+      <Variable name="mobile_profile_item_type" type="String"/>
+      <Variable name="mobile_profile_item_type_path" type="String"/>
+      <Variable name="module_name" type="String"/>
+      <Variable name="parent_job_id" type="Integer"/>
+      <Variable name="portal_url" type="String"/>
+      <Variable name="property_module" type="String"/>
+      <Variable name="request_json" type="String"/>
+      <Variable name="request_json_log" type="String"/>
+      <Variable name="response_items_checkpass_path" type="String"/>
+      <Variable name="response_items_id_path" type="String"/>
+      <Variable name="response_items_ok_path" type="String"/>
+      <Variable name="response_items_path" type="String"/>
+      <Variable name="response_items_reason_path" type="String"/>
+      <Variable name="response_items_type_path" type="String"/>
+      <Variable name="response_json" type="String"/>
+      <Variable name="response_json_log" type="String"/>
+      <Variable name="response_message" type="String"/>
+      <Variable name="response_result_path" type="String"/>
+      <Variable name="service_instance" type="String"/>
+      <Variable name="service_instance_id" type="String"/>
+      <Variable name="service_instance_id_path" type="String"/>
+      <Variable name="service_instance_id_prev" type="String"/>
+      <Variable name="service_instance_status" type="String"/>
+      <Variable name="service_instance_status_path" type="String"/>
+      <Variable name="skip_activation" type="Boolean"/>
+      <Variable name="success" type="Boolean"/>
+      <Variable name="sy_ban_ok" type="String"/>
+      <Variable name="sy_ban_reason" type="String"/>
+      <Variable name="sy_bans" type="Object"/>
+      <Variable name="sy_customer_id" type="String"/>
+      <Variable name="sy_customers_by_ban_list" type="Object"/>
+      <Variable name="sy_customers_by_ban_size" type="Integer"/>
+      <Variable name="sy_customers_by_hierarchy_list" type="Object"/>
+      <Variable name="sy_error_code" type="String"/>
+      <Variable name="sy_error_message" type="String"/>
+      <Variable name="sy_hierarchy_id" type="String"/>
+      <Variable name="sy_ip_address" type="String"/>
+      <Variable name="sy_port" type="String"/>
+      <Variable name="sy_protocol" type="String"/>
+      <Variable name="too_many_users_ban_message" type="String"/>
+      <Variable name="transaction_id" type="String"/>
+      <Variable name="transaction_initiator" type="String"/>
+      <Variable name="update_customer_request_json" type="String"/>
+      <Variable name="update_customer_response_json" type="String"/>
+      <Variable name="update_customer_url" type="String"/>
+   </Case-Packet>
+   <Initial-Case-Packet>
+      <Variable-Value name="FILE_URL_PREFIX" value="file:///"/>
+      <Variable-Value name="SOLUTION_NAME" value="Cloud"/>
+      <Variable-Value name="WORKFLOW_NAME" value="Cloud_MobileProfile.Delete"/>
+      <Variable-Value name="WORKFLOW_VERSION" value="-1"/>
+   </Initial-Case-Packet>
+   <Coordinates>
+      <Position>
+         <Name>&quot;OK&quot;?(1)3121</Name>
+         <X>1968</X>
+         <Y>903</Y>
+         <Width>95</Width>
+         <Height>24</Height>
+      </Position>
+      <Position>
+         <Name>Adding model to response_json1</Name>
+         <X>10291</X>
+         <Y>878</Y>
+         <Width>166</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Audit Cloud_MobileProfile.Delete</Name>
+         <X>170</X>
+         <Y>375</Y>
+         <Width>166</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Call getCustomerById()</Name>
+         <X>1954</X>
+         <Y>517</Y>
+         <Width>122</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Child error code is OK?1</Name>
+         <X>3040</X>
+         <Y>981</Y>
+         <Width>144</Width>
+         <Height>24</Height>
+      </Position>
+      <Position>
+         <Name>Create customer_lock1</Name>
+         <X>1006</X>
+         <Y>395</Y>
+         <Width>120</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>DoNothing</Name>
+         <X>11116</X>
+         <Y>4124</Y>
+         <Width>61</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Get SY properties1</Name>
+         <X>203</X>
+         <Y>807</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Get customer lock2</Name>
+         <X>1016</X>
+         <Y>551</Y>
+         <Width>101</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Getting customer from response</Name>
+         <X>1933</X>
+         <Y>1112</Y>
+         <Width>164</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Getting customer id</Name>
+         <X>202</X>
+         <Y>1268</Y>
+         <Width>103</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Getting error code from response21</Name>
+         <X>1924</X>
+         <Y>801</Y>
+         <Width>182</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LAUNCH ORDER CREATE WF1</Name>
+         <X>3032</X>
+         <Y>124</Y>
+         <Width>155</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LOCKING CUSTOMER</Name>
+         <X>1010</X>
+         <Y>132</Y>
+         <Width>112</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Log: Getting customer_lock1</Name>
+         <X>993</X>
+         <Y>472</Y>
+         <Width>146</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogDebug: Cloud_MobileProfile.Delete started</Name>
+         <X>138</X>
+         <Y>697</Y>
+         <Width>231</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogDebug: Finished</Name>
+         <X>10322</X>
+         <Y>1971</Y>
+         <Width>104</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogDebug: get customer by id</Name>
+         <X>1938</X>
+         <Y>336</Y>
+         <Width>154</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogDebug: get customer by id results</Name>
+         <X>1921</X>
+         <Y>989</Y>
+         <Width>189</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogDebug: monitoring starts11</Name>
+         <X>3034</X>
+         <Y>769</Y>
+         <Width>158</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogDebug: order create WF1</Name>
+         <X>3038</X>
+         <Y>423</Y>
+         <Width>150</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogError: composite error11111</Name>
+         <X>2664</X>
+         <Y>1147</Y>
+         <Width>163</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogError: composite error4121</Name>
+         <X>1702</X>
+         <Y>1187</Y>
+         <Width>157</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogError: rest error3121</Name>
+         <X>1466</X>
+         <Y>1125</Y>
+         <Width>128</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogError: rest error31211</Name>
+         <X>770</X>
+         <Y>1146</Y>
+         <Width>134</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogInfo: Cloud_MobileProfile.Delete started</Name>
+         <X>143</X>
+         <Y>594</Y>
+         <Width>220</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT LAUNCH ORDER CREATE WF1</Name>
+         <X>2318</X>
+         <Y>1970</Y>
+         <Width>183</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT LOCKING CUSTOMER</Name>
+         <X>497</X>
+         <Y>1971</Y>
+         <Width>140</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT REST GET CUSTOMER BY ID</Name>
+         <X>1257</X>
+         <Y>1971</Y>
+         <Width>172</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT SETTING FINAL PARAMS111111</Name>
+         <X>2647</X>
+         <Y>2761</Y>
+         <Width>192</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT SETTING FINAL PARAMS12111</Name>
+         <X>1687</X>
+         <Y>2771</Y>
+         <Width>186</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT SETTING FINAL PARAMS12211</Name>
+         <X>1437</X>
+         <Y>2771</Y>
+         <Width>186</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT SETTING FINAL PARAMS122111</Name>
+         <X>741</X>
+         <Y>2771</Y>
+         <Width>192</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>NEXT SETTING FINAL PARAMS2</Name>
+         <X>9869</X>
+         <Y>1971</Y>
+         <Width>162</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>REST GET CUSTOMER BY ID</Name>
+         <X>1943</X>
+         <Y>132</Y>
+         <Width>144</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>SETTING FINAL PARAMS1</Name>
+         <X>10307</X>
+         <Y>132</Y>
+         <Width>134</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>SETTING INITIAL PARAMS1</Name>
+         <X>182</X>
+         <Y>132</Y>
+         <Width>142</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>SUCCESS LOCKING CUSTOMER</Name>
+         <X>986</X>
+         <Y>1971</Y>
+         <Width>160</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>SUCCESS ORDER CREATE WF1</Name>
+         <X>3033</X>
+         <Y>1958</Y>
+         <Width>160</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>SUCCESS REST GET CUSTOMER BY ID</Name>
+         <X>1919</X>
+         <Y>1971</Y>
+         <Width>192</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>SUCCESS SETTING INITIAL PARAMS1</Name>
+         <X>158</X>
+         <Y>1971</Y>
+         <Width>190</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set counters to 0</Name>
+         <X>207</X>
+         <Y>1378</Y>
+         <Width>93</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set get_customer_by_id_json</Name>
+         <X>1939</X>
+         <Y>425</Y>
+         <Width>153</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set initial parameters1</Name>
+         <X>195</X>
+         <Y>492</Y>
+         <Width>117</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set query failed message3121</Name>
+         <X>1453</X>
+         <Y>961</Y>
+         <Width>155</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set query failed message31211</Name>
+         <X>757</X>
+         <Y>982</Y>
+         <Width>161</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set urls for SY1</Name>
+         <X>211</X>
+         <Y>923</Y>
+         <Width>84</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Setting child code to empty1</Name>
+         <X>3040</X>
+         <Y>528</Y>
+         <Width>146</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Setting initial response_json</Name>
+         <X>181</X>
+         <Y>1136</Y>
+         <Width>144</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Setting log params21</Name>
+         <X>1960</X>
+         <Y>610</Y>
+         <Width>111</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>StartJobAndWait1</Name>
+         <X>3064</X>
+         <Y>636</Y>
+         <Width>98</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>WasPreviousNodeOK</Name>
+         <X>1001</X>
+         <Y>672</Y>
+         <Width>131</Width>
+         <Height>24</Height>
+      </Position>
+      <Position>
+         <Name>create base SY request1</Name>
+         <X>189</X>
+         <Y>1027</Y>
+         <Width>128</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>http code == 200?21</Name>
+         <X>1949</X>
+         <Y>702</Y>
+         <Width>133</Width>
+         <Height>24</Height>
+      </Position>
+      <Position>
+         <Name>set debug comment error11111</Name>
+         <X>2665</X>
+         <Y>1059</Y>
+         <Width>161</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>set debug comment error4121</Name>
+         <X>1703</X>
+         <Y>1099</Y>
+         <Width>155</Width>
+         <Height>48</Height>
+      </Position>
+      <Arrows>
+         <Name>&quot;OK&quot;?(1)3121</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Adding model to response_json1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Audit Cloud_MobileProfile.Delete</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Call getCustomerById()</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Child error code is OK?1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Create customer_lock1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>DoNothing</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Get SY properties1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Get customer lock2</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Getting customer from response</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Getting customer id</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Getting error code from response21</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LAUNCH ORDER CREATE WF1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LOCKING CUSTOMER</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Log: Getting customer_lock1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogDebug: Cloud_MobileProfile.Delete started</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogDebug: Finished</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogDebug: get customer by id</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogDebug: get customer by id results</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogDebug: monitoring starts11</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>16</DeltaX>
+            <DeltaY>17</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogDebug: order create WF1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogError: composite error11111</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogError: composite error4121</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogError: rest error3121</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogError: rest error31211</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogInfo: Cloud_MobileProfile.Delete started</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT LAUNCH ORDER CREATE WF1</Name>
+         <True-Arrow>
+            <Type>3</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT LOCKING CUSTOMER</Name>
+         <True-Arrow>
+            <Type>3</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT REST GET CUSTOMER BY ID</Name>
+         <True-Arrow>
+            <Type>3</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT SETTING FINAL PARAMS111111</Name>
+         <True-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT SETTING FINAL PARAMS12111</Name>
+         <True-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT SETTING FINAL PARAMS12211</Name>
+         <True-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT SETTING FINAL PARAMS122111</Name>
+         <True-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>NEXT SETTING FINAL PARAMS2</Name>
+         <True-Arrow>
+            <Type>3</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>REST GET CUSTOMER BY ID</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>SETTING FINAL PARAMS1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>SETTING INITIAL PARAMS1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>SUCCESS LOCKING CUSTOMER</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>SUCCESS ORDER CREATE WF1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>SUCCESS REST GET CUSTOMER BY ID</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>SUCCESS SETTING INITIAL PARAMS1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set counters to 0</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set get_customer_by_id_json</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set initial parameters1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set query failed message3121</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set query failed message31211</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set urls for SY1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Setting child code to empty1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Setting initial response_json</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Setting log params21</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>2022</DeltaX>
+            <DeltaY>713</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>StartJobAndWait1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>WasPreviousNodeOK</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>create base SY request1</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>http code == 200?21</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>2</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>set debug comment error11111</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>set debug comment error4121</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+   </Coordinates>
+</Workflow>
