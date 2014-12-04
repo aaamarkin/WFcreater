@@ -1,0 +1,151 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE Workflow
+  SYSTEM 'workflow.dtd'>
+<Workflow Init-On-Startup="false" Unique="false" auditEnabled="true" autoAuditEnabled="true" disablePersistence="false" statEnabled="true">
+   <Name>Renamed_WF</Name>
+   <Solution>Default_WF_solution</Solution>
+   <Start-Node>Mandatory start node</Start-Node>
+   <Nodes>
+      <Process-Node disablePersistence="true">
+         <Name>Mandatory start node</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.DoNothing</Class-Name>
+         </Action>
+      </Process-Node>
+      <Process-Node>
+         <Name>logger</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: "/>
+            <Param name="param0" value="variable:transaction_id"/>
+            <Param name="param1" value="variable:JOB_ID"/>
+            <Param name="param2" value="variable:transaction_initiator"/>
+            <Param name="log_level" value="constant:DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+         </Action>
+         <Next-Node>Second json setter</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>Second json setter</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter</Class-Name>
+            <Param name="output_json" value="request_json"/>
+         </Action>
+      </Process-Node>
+   </Nodes>
+   <Case-Packet>
+      <Variable name="BREAK_POINT" type="String"/>
+      <Variable name="DEFAULT_ROLE" type="String"/>
+      <Variable name="EMPTY_STRING" type="String"/>
+      <Variable name="ETC" type="String"/>
+      <Variable name="EX_STEP_NAME" type="String"/>
+      <Variable name="FILE_URL_PREFIX" type="String"/>
+      <Variable name="HOST_NAME" type="String"/>
+      <Variable name="JOB_ID" type="Integer"/>
+      <Variable name="KILL_ROLE" type="String"/>
+      <Variable name="MASTER_CHILD_JOBS" type="Object"/>
+      <Variable name="NULL" type="Object"/>
+      <Variable name="PRIORITY" type="Integer"/>
+      <Variable name="RESERVATIONS" type="Object"/>
+      <Variable name="RET_TEXT" type="String"/>
+      <Variable name="RET_VALUE" type="Integer"/>
+      <Variable name="RUNTIME" type="Object"/>
+      <Variable name="SCHEDULED_INFO" type="Object"/>
+      <Variable name="SERVICE_ID" type="String"/>
+      <Variable name="SOLUTION_ETC" type="String"/>
+      <Variable name="SOLUTION_NAME" type="String"/>
+      <Variable name="SOLUTION_VAR" type="String"/>
+      <Variable name="START_ROLE" type="String"/>
+      <Variable name="START_TIME" type="Integer"/>
+      <Variable name="STATUS" type="String"/>
+      <Variable name="STEP_NAME" type="String"/>
+      <Variable name="SUBSTEP" type="String"/>
+      <Variable name="THROW_EXCEP" type="Boolean"/>
+      <Variable name="TIMEOUT" type="Boolean"/>
+      <Variable name="TRACE_ROLE" type="String"/>
+      <Variable name="UNIQUE_WORKFLOW" type="Integer"/>
+      <Variable name="VAR" type="String"/>
+      <Variable name="WORKFLOW_EXCEPTION" type="Object"/>
+      <Variable name="WORKFLOW_EXECUTION_STATUS" type="String"/>
+      <Variable name="WORKFLOW_NAME" type="String"/>
+      <Variable name="WORKFLOW_ORDER_ID" type="String"/>
+      <Variable name="WORKFLOW_STATE" type="String"/>
+      <Variable name="WORKFLOW_TYPE" type="String"/>
+      <Variable name="WORKFLOW_VERSION" type="Integer"/>
+      <Variable name="activation_description" type="String"/>
+      <Variable name="activation_major_code" type="Integer"/>
+      <Variable name="activation_minor_code" type="Integer"/>
+      <Variable name="message_url" type="String"/>
+      <Variable name="module_name" type="String"/>
+      <Variable name="skip_activation" type="Boolean"/>
+   </Case-Packet>
+   <Initial-Case-Packet>
+      <Variable-Value name="FILE_URL_PREFIX" value="file:///"/>
+      <Variable-Value name="SOLUTION_NAME" value="Default_WF_solution"/>
+      <Variable-Value name="WORKFLOW_NAME" value="Renamed_WF"/>
+      <Variable-Value name="WORKFLOW_VERSION" value="-1"/>
+   </Initial-Case-Packet>
+   <Coordinates>
+      <Position>
+         <Name>Mandatory start node</Name>
+         <X>100</X>
+         <Y>100</Y>
+         <Width>142</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>logger</Name>
+         <X>100</X>
+         <Y>100</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Second json setter</Name>
+         <X>100</X>
+         <Y>200</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Arrows>
+         <Name>Mandatory start node</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>logger</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Second json setter</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+   </Coordinates>
+</Workflow>

@@ -48,18 +48,13 @@ class Parameters:
         self.index = len(self.parameters)
 
     def contains(self, param_name):
-    	for parameter in self.parameters:
-    		if parameter.name == param_name:
-    			return True
-    	return False
+        return self.getValue(param_name) != None
 
     def getValue(self, param_name):
-    	if self.contains(param_name):
     		for parameter in self.parameters:
     			if parameter.name == param_name:
     				return parameter.value
-    	else:
-    		return ""
+    		return None
 
     def insertUpdateValue(self, param_name, param_value):
     	if self.contains(param_name):
@@ -125,7 +120,7 @@ class Node:
 class ProcessNode(Node):
 
     def __init__(self, name = "", class_name = "", parameters = [],
-    next_node = "", x = "", y = "", width = "", height = "48", arrow = Arrow()):
+    next_node = "", x = "", y = "", width = "100", height = "48", arrow = Arrow()):
         Node.__init__(self, name = name, class_name = class_name, parameters = parameters,
         x = x, y = y, width = width, height = height)
         self.arrow = arrow
@@ -137,7 +132,7 @@ class ProcessNode(Node):
 class RuleNode(Node):
 
     def __init__(self, name = "", class_name = "", parameters = [],
-    next_node_true = "", next_node_false = "", x = "", y = "", width = "", height = "24",
+    next_node_true = "", next_node_false = "", x = "", y = "", width = "100", height = "24",
     arrow_true = Arrow(), arrow_false = Arrow()):
         Node.__init__(self, name = name, class_name = class_name, parameters = parameters,
         x = x, y = y, width = width, height = height)
@@ -146,7 +141,25 @@ class RuleNode(Node):
         self.next_node_true = next_node_true
         self.next_node_false = next_node_false
           
+class NodeGroup():
+
+    def __init__(self):
+        self.node_list = []
+
+    def contains(self, node_name):
+        return self.getNode(node_name) != None
         
+    def  getNode(self, node_name):
+        for actual_node in self.node_list:
+            if actual_node.name == node_name:
+                return actual_node
+        return None
+                
+    def removeNode(self, node_name):
+        self.node_list = [actual_node for actual_node in self.node_list if actual_node.name == node_name]
+                
+    def addNode(self, node):
+        self.node_list.append(node)
         
         
         

@@ -27,7 +27,7 @@ class DomManager:
             self.need_backup = True
         except Exception as e:
             self.dom_tree = xml.dom.minidom.parseString \
-            (formatXml("/home/andrey/Desktop/WFcreater/Default_WF.xml"))
+            (formatXml("Default_WF.xml"))
             self.need_backup = False
         self.collection = self.dom_tree.documentElement
             
@@ -308,6 +308,7 @@ class DomManager:
         
 
 if __name__ == '__main__':
+
     if  len(sys.argv) == 1:
         print "Incorrect number of parameters"
         print "Launch like this: python WFParser /pathToFile/filename.xml"
@@ -325,25 +326,25 @@ if __name__ == '__main__':
         parameters = Parameters({"output_json":"request_json"}),
         class_name = WFConstants.CLASS_NAME_JSON_SETTER,
         x = "100", y = "200")
-        print "-----------------------------"
+
         dicts = {"output_json":"request_json", "output_json":"request_json"}
         param = Parameter("output_json", "request_json")
         params = Parameters(dicts)
         #params.addParameter(param)
-        print dicts
+        
 
 
-        '''
+        
         try:
-            #dom_manager.addNode(new_process_node)
+            dom_manager.addNode(new_process_node)
+            dom_manager.addNode(second_node)
             #dom_manager.addNode(second_node)
-            #dom_manager.addNode(second_node)
-            #dom_manager.renameWF("Renamed_WF")
-            #dom_manager.overwrightOriginalFile()
+            dom_manager.renameWF("Renamed_WF")
+            dom_manager.overwrightOriginalFile()
 
         except Exception as e:
             aaa = ""
-        '''
+        
     
                     
 
