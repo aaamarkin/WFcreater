@@ -149,7 +149,11 @@ class NodeGroup():
     def contains(self, node_name):
         return self.getNode(node_name) != None
         
-    def  getNode(self, node_name):
+    def getFirst(self):
+        disconnected_nodes = self.node_list
+        [node for node in self.node_list if actual_node.name == node_name]
+        
+    def getNode(self, node_name):
         for actual_node in self.node_list:
             if actual_node.name == node_name:
                 return actual_node
@@ -160,6 +164,19 @@ class NodeGroup():
                 
     def addNode(self, node):
         self.node_list.append(node)
+        
+    def moveX(self, x):
+        for node in self.node_list:
+            node.x = node.x + x;
+            
+    def moveY(self, y):
+        for node in self.node_list:
+            node.y = node.y + y;
+            
+    def makeVertical(self):
+        for node in self.node_list:
+            
+
         
         
         

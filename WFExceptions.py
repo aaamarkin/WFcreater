@@ -18,3 +18,13 @@ class DuplicateParamError(Exception):
 	def __str__(self):
 		return "Parameter " + "'" + self.param_name +\
 		"'" + " already exists in " + repr(self.params)
+        
+class UnexistingNodeError(Exception):
+
+	def __init__(self, node, node_group):
+		self.node = node
+        self.node_group = node_group
+	
+	def __str__(self):
+		return "Node " + "'" + self.node.name +\
+		"'" + " not found in  " + self.node_group
