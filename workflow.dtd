@@ -1,0 +1,99 @@
+<!--
+  ==========================================================================
+  Workflow definition DTD.
+
+  Version 1.3
+  ==========================================================================
+  (c) Hewlett-Packard 2000-2001
+  ==========================================================================
+-->
+
+<!ELEMENT Name            (#PCDATA)>
+<!ELEMENT Solution        (#PCDATA)>
+<!ELEMENT Description     (#PCDATA)>
+<!ELEMENT Init-On-Startup (#PCDATA)>
+<!ELEMENT Start-Node      (#PCDATA)>
+<!ELEMENT Next-Node       (#PCDATA)>
+<!ELEMENT True-Next-Node  (#PCDATA)>
+<!ELEMENT False-Next-Node (#PCDATA)>
+<!ELEMENT Class-Name      (#PCDATA)>
+<!ELEMENT Default-Role    (#PCDATA)>
+<!ELEMENT Start-Role      (#PCDATA)>
+<!ELEMENT Trace-Role      (#PCDATA)>
+<!ELEMENT Kill-Role       (#PCDATA)>
+<!ELEMENT Role            (#PCDATA)>
+
+<!-- The root for workflow definitions -->
+
+<!ELEMENT Workflow (Name, Solution?, Description?, Default-Role?, 
+                    Start-Role?, Trace-Role?, Kill-Role?,
+            Start-Node, Nodes, Error-Handler*, 
+            End-Handler*, Case-Packet, 
+            Initial-Case-Packet?, Coordinates?)>
+<!ATTLIST Workflow Init-On-Startup CDATA #IMPLIED> 
+<!ATTLIST Workflow Unique          CDATA #IMPLIED> 
+<!ATTLIST Workflow statEnabled     CDATA #IMPLIED> 
+<!ATTLIST Workflow auditEnabled    CDATA #IMPLIED> 
+<!ATTLIST Workflow autoAuditEnabled CDATA #IMPLIED> 
+<!ATTLIST Workflow disablePersistence CDATA #IMPLIED>
+
+<!-- Nodes -->
+<!ELEMENT Nodes ((Process-Node | Rule-Node | Switch-Node)*)>
+
+<!ELEMENT Process-Node (Name, Description?, Role?, Action, Next-Node?)>
+<!ATTLIST Process-Node inactive  CDATA #IMPLIED>
+<!ATTLIST Process-Node disablePersistence CDATA #IMPLIED>
+
+<!ELEMENT Rule-Node (Name, Description?, Action, 
+                     True-Next-Node, False-Next-Node)>
+<!ATTLIST Rule-Node disablePersistence CDATA #IMPLIED>
+
+<!ELEMENT Switch-Node (Name, Description?, Action, Switch*, Default)>
+<!ATTLIST Switch-Node disablePersistence CDATA #IMPLIED>
+<!ELEMENT Switch            (#PCDATA)>
+<!ATTLIST Switch name CDATA #IMPLIED>
+<!ELEMENT Default (#PCDATA)>
+
+
+<!-- Actions -->
+<!ELEMENT Action (Class-Name, Param*)>
+<!ELEMENT Param (#PCDATA)>
+<!ATTLIST Param name  CDATA #REQUIRED>
+<!ATTLIST Param value CDATA #REQUIRED>
+
+<!-- Handlers -->
+<!ELEMENT Error-Handler (Name?, Class-Name, Param*)>
+<!ELEMENT End-Handler (Name?, Class-Name, Param*)>
+
+<!ELEMENT Case-Packet (Variable*)>
+<!ELEMENT Variable (#PCDATA)>
+<!ATTLIST Variable name CDATA #REQUIRED>
+<!ATTLIST Variable type CDATA #REQUIRED>
+<!ATTLIST Variable disablePersistence CDATA #IMPLIED>
+
+<!ELEMENT Initial-Case-Packet (Variable-Value*)>
+<!ELEMENT Variable-Value (#PCDATA)>
+<!ATTLIST Variable-Value name  CDATA #REQUIRED>
+<!ATTLIST Variable-Value value CDATA #REQUIRED>
+
+<!-- Nodes Coordinates -->
+<!ELEMENT Coordinates (Position+, Arrows*)>
+<!ELEMENT Position (Name, X, Y, Width, Height)>
+<!ELEMENT X      (#PCDATA)>
+<!ELEMENT Y      (#PCDATA)>
+<!ELEMENT Width  (#PCDATA)>
+<!ELEMENT Height (#PCDATA)>
+
+<!ELEMENT Arrows (Name,True-Arrow, False-Arrow,Switch-Arrow?)>
+<!ELEMENT True-Arrow (Type,DeltaX,DeltaY)>
+<!ELEMENT False-Arrow (Type,DeltaX,DeltaY)>
+<!ELEMENT Type   (#PCDATA)>
+<!ELEMENT DeltaX (#PCDATA)>
+<!ELEMENT DeltaY (#PCDATA)>
+<!ELEMENT Switch-Arrow (Default-Arrow, Case-Arrow*)>
+<!ELEMENT Case-Arrow (Name, Type, DeltaX, DeltaY)>
+<!ELEMENT Default-Arrow (Type, DeltaX, DeltaY)>
+<!--
+    (C) 2000-2003 Copyright Hewlett-Packard Development Company, L.P.
+-->
+

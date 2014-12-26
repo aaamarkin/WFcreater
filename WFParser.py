@@ -4,9 +4,20 @@ from xml.dom.minidom import parse
 import xml.dom.minidom
 from xml.dom.minidom import Document
 import WFNodes
-from WFNodes import Parameters, Parameter, ProcessNode, RuleNode, NodeGroup
+from WFNodes import Parameters, Parameter, ProcessNode, RuleNode, NodeGroup, RestRequestGroup
 from WFExceptions import DuplicateNodeError, DuplicateParamError
 import re
+
+#TODO
+#1 Raise exception in nodegroup
+#2 Raise exception in Parameter and Parameters classes
+#3 Create fields in parameter class indicating whether parameter name is constant or variable
+#4 In delete node raise exception is deleted node has the same name as WF name
+#5 Move removing node group nodes from WF from addNodeGroup to higher level method
+#6 Create method setStartNode
+#7 Add raise exception to addHandler method
+#8 Modify WFVariables to save typical variable names (error_code, error_message, etc)
+#9 Complete getNode method
 
 # Helper functions
 def formatXml(file_name):
@@ -39,10 +50,13 @@ class DomManager:
             self.dom_tree = xml.dom.minidom.parseString(WFConstants.BASE_WF)
             self.need_backup = False
         self.collection = self.dom_tree.documentElement
+        temp_filename = file_name.split(".xml")[0]
+        temp_filename = temp_filename.split("/")[-1]
+        self.renameWF(temp_filename)
             
     def overwrightOriginalFile(self):
         if self.need_backup:
-            backup_file_name = self.file_name.split(".")[0] + "_backup.xml"
+            backup_file_name = self.file_name.split(".xml")[0] + "_backup.xml"
             file_backup = open(backup_file_name, 'w')
             file_backup.write(self.dom_tree_backup.toxml(encoding='utf-8'))
         
@@ -118,6 +132,30 @@ class DomManager:
                 
         return False
 
+    def getNode(self, node_name):
+        if self.getWFName() != node_name:
+            name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
+            for name_node in name_nodes:
+                if name_node.firstChild.nodeValue == node_name:
+                    xml_node = name_node.parentNode
+
+    def integrateRestGroup(self, node_group):
+        self.addNodeGroup(node_group)
+        for node in node_group:
+            for parameter in node.parameters:
+                if not parameter.without_prefix and not parameter.is_constant:
+                    self.insertUpdateCasePacket(parameter.value, parameter.type)
+
+        if self.hasNodeName(WFVariables.NODE_NAME_SET_SY_URL):
+            set_sy_node = self.getNode(WFVariables.NODE_NAME_SET_SY_URL)
+            self.removeNode(self, WFVariables.NODE_NAME_SET_SY_URL)
+
+            set_sy_node.parameters.insertUpdateValue(node_group.request_url,\
+                "%" + WFVariables.VARIABLE_NAME_SY_PROTOCOL + "%://%" +\
+                WFVariables.VARIABLE_NAME_SY_IP + "%:%" + WFVariables.VARIABLE_NAME_SY_PORT + "%/" + node_group.url)
+
+            self.addNode(set_sy_node)
+
     def addNodeGroup(self, node_group):
         try:
             for node in node_group:
@@ -126,15 +164,15 @@ class DomManager:
                 for node in ex_node_group:
                     self.addNode(node)
         except Exception as e:
-            for node in node_group:
-                self.removeNode(node.name)
-                self.removeNextNodeReferences(node.name)
-            for ex_node_group in node_group.node_group_list:
-                for node in ex_node_group:
-                    self.removeNode(node.name)
-                    self.removeNextNodeReferences(node.name)
-            print e
-        
+            raise e
+
+    def addHandler(self, handler):
+
+        handler_to_add = self.createXmlHandler(handler)
+
+        case_packet = self.collection.getElementsByTagName(WFConstants.TAG_NAME_CASE_PACKET)[0]
+        self.collection.insertBefore(handler_to_add, case_packet)
+
     def addNode(self, node):
         if self.hasNodeName(node.name):
             raise DuplicateNodeError(node.name)
@@ -159,7 +197,7 @@ class DomManager:
         node_to_add = self.createXmlNode(node)
         all_nodes.appendChild(node_to_add)
           
-        coordinates = self.collection.getElementsByTagName(WFConstants.TAG_NAME_COORDINATES)[0]
+        coordinates = self.collection.getElementsByTagName("Work")[0]
         coordinates_and_arrows = self.createXmlPosAndArrows(node)
         coordinates.appendChild(coordinates_and_arrows[1])
         
@@ -211,6 +249,37 @@ class DomManager:
         xml_case_packet_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, var_type)
 
         return xml_case_packet_node
+
+    def createXmlHandler(self, handler):
+        doc = Document()
+
+        xml_handler = doc.createElement(WFConstants.TAG_NAME_END_HANDLER)
+        xml_name_handler = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_handler_content = doc.createTextNode(handler.name)
+        xml_name_handler.appendChild(xml_name_handler_content)
+
+        xml_class_name_handler = doc.createElement(WFConstants.TAG_NAME_CLASS_NAME)
+        xml_class_name_handler_content =  doc.createTextNode(handler.class_name)
+        xml_class_name_handler.appendChild(xml_class_name_handler_content)
+
+        xml_handler.appendChild(xml_name_handler)
+        xml_handler.appendChild(xml_class_name_handler)
+
+        for parameter in node.parameters:
+
+            xml_param_handler = doc.createElement(WFConstants.TAG_NAME_PARAM)
+            xml_param_handler.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, parameter.name)
+            if not parameter.without_prefix:
+                if parameter.is_constant:
+                    prefix = "constant:"
+                else:
+                    prefix = "variable:"
+                xml_param_handler.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, prefix + parameter.value)
+            else:
+                xml_param_handler.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, parameter.value)
+            xml_handler.appendChild(xml_param_handler)
+
+        return xml_handler
 
     def createXmlNode(self, node):
         doc = Document()
@@ -394,13 +463,21 @@ class DomManager:
                     removed = name_node.parentNode.parentNode.removeChild(name_node.parentNode)
                     removed.unlink()
 
+    def removeNodeGroup(self, node_group):
+        for node in node_group:
+                self.removeNode(node.name)
+                self.removeNextNodeReferences(node.name)
+            for ex_node_group in node_group.node_group_list:
+                for node in ex_node_group:
+                    self.removeNode(node.name)
+                    self.removeNextNodeReferences(node.name)
         
 
 if __name__ == '__main__':
 
     if  len(sys.argv) == 1:
         print "Incorrect arguments number"
-        print "Launch like this: python WFParser /pathToFile/filename.xml"
+        print "Usage: python %s /pathToFile/filename.xml" %sys.argv[0]
     else:
         file_name = sys.argv[1]
         
@@ -439,15 +516,20 @@ if __name__ == '__main__':
         group2.injectNode(rule_node_2)
         group.addGroup(group2)
 
+        restGroup = RestRequestGroup('solution-composite-name/service-name/getMyDataByIdentifier')
+
+        restGroup.makeVertical(initial_y=500, step=100)
+        restGroup.moveX(500)
         #dom_manager.addNodeTest(rule_node)
         #dom_manager.addNode(rule_node)
 
         try:
-            #dom_manager.addNodeGroup(group)
+            dom_manager.addNodeGroup(restGroup)
             #dom_manager.removeNextNodeReferences("logger")
             #dom_manager.removeNode("Default_WF")
             #dom_manager.addNode(rule_node)
-            dom_manager.renameWF("Renamed_WF")
+
+            #dom_manager.renameWF("Renamed_WF")
 
             dom_manager.overwrightOriginalFile()
 

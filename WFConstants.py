@@ -26,6 +26,7 @@ TAG_NAME_FALSE_ARROW = "False-Arrow"
 TAG_NAME_TYPE = "Type"
 TAG_NAME_DELTA_X = "DeltaX"
 TAG_NAME_DELTA_Y = "DeltaY"
+TAG_NAME_END_HANDLER = "End-Handler"
 
 #Attribute name constants
 ATTRIBUTE_NAME_NAME = "name"
@@ -43,6 +44,50 @@ CLASS_NAME_GET_LOCK = "ru.deltasolutions.common.activator.mwfm.lock.nodes.GetLoc
 CLASS_NAME_DO_NOTHING = "com.hp.ov.activator.mwfm.component.builtin.DoNothing"
 CLASS_NAME_MAKE_REST_REQUEST = "ru.deltasolutions.common.activator.mwfm.http.nodes.MakeRestRequest"
 CLASS_NAME_EQUALS = "com.hp.ov.activator.mwfm.component.builtin.Equal"
+CLASS_NAME_LOG_HANDLER = "ru.deltasolutions.common.activator.mwfm.log.handlers.LogHandler"
+CLASS_NAME_SYNC_HANDLER = "com.hp.ov.activator.mwfm.component.builtin.SyncHandler"
+CLASS_NAME_RELEASE_LOCK_HANDLER = "ru.deltasolutions.common.activator.mwfm.lock.handlers.ReleaseLocksHandler"
+CLASS_NAME_AUDIT_HANDLER = "ru.deltasolutions.common.activator.mwfm.audit.handlers.AuditHandler"
+
+#Handler names
+SYNC_HANDLER_NAME = "SyncHandler"
+AUDIT_HANDLER_NAME = "AuditHandler"
+LOG_HANDLER = "LogHandler"
+RELEASE_LOCK_HANDLER = "ReleaseLocksHandler"
+
+#Handler constants
+LOG_HANDLER_PARAMS = {
+    "component_name":"variable:WORKFLOW_NAME",
+    "log_level":"INFORMATIVE",
+    "log_manager":"variable:log_manager",
+    "log_message":"TransactionID=%s (JobID=%s), initiator=%s:",
+    "param0":"variable:transaction_id",
+    "param1":"variable:JOB_ID",
+    "param2":"variable:transaction_initiator",
+    "param3":"variable:error_code",
+    "param4":"variable:error_message"
+}
+AUDIT_HANDLER_PARAMS = {
+    "event_type":"constant:TRANSACTION_END",
+    "identifier":"",
+    "order_id":"variable:transaction_id",
+    "attrib_name0":"response_json",
+    "attrib_value0":"variable:response_json"
+}
+SYNC_HANDLER_PARAMS = {
+    "job_id":"parent_job_id",
+    "queue":"constant:sync",
+    "destination0":"child_error_code",
+    "variable0":"variable:error_code",
+    "destination1":"child_error_message",
+    "variable1":"variable:error_message",
+    "destination2":"lock_storage",
+    "variable2":"variable:lock_storage"
+}
+RELEASE_LOCK_HANDLER_PARAMS = {
+    "lock_storage":"lock_storage",
+    "log_manager":"log_manager"
+}
 
 #Log node constants
 LOG_ORDINARY_PARAMS = {
@@ -69,8 +114,8 @@ LOG_MESSAGE_BEGINING = "Transaction ID=%s (JobId=%s), initiator=%s: "
 
 #Audit node constants
 AUDIT_ORDINARY_PARAMS = {
-    "event_type":"constant:MOBILE_PROFILE_DELETE",
-    "order_id":"transaction_id",
+    "event_type":"constant:",
+    "order_id":"variable:transaction_id",
     "step_name":"constant:TRANSACTION_START",
     "user":"variable:transaction_initiator",
     "attrib_name0":"variable:request_json",
@@ -86,16 +131,20 @@ SET_INITIAL_VALUE_PARAMS = {
 }
 
 #Get switchyard properties node constants
+value_protocol = "variable:" + VARIABLE_NAME_SY_PROTOCOL
+value_ip = "variable:" + VARIABLE_NAME_SY_IP
+value_port = "variable:" + VARIABLE_NAME_SY_PORT
+value_timeout = "variable:" + VARIABLE_NAME_LOCK_TIME
 GET_PROPERTIES_PARAMS = {
-    "property_module":"property_module",
+    "property_module":"variable:property_module",
     "key0":"constant:sy_protocol",
-    "value0":"variable:sy_protocol",
+    "value0":value_protocol,
     "key1":"constant:sy_ip_address",
-    "value1":"variable:sy_ip_address",
+    "value1":value_ip,
     "key2":"constant:sy_port",
-    "value2":"variable:sy_port",
+    "value2":value_port,
     "key3":"constant:lock_timeout",
-    "value3":"variable:lock_timeout"
+    "value3":value_timeout
 }
 
 #Create request constants
