@@ -144,6 +144,19 @@ class RuleNode(Node):
         self.next_node_true = next_node_true
         self.next_node_false = next_node_false
 
+class SwitchNode(Node):
+    def __init__(self, name="", class_name="", parameters=Parameters({}),
+                 next_node_default="", next_node_cases={}, x="0", y="0", width="100", height="24",
+                 arrow_true=Arrow(), arrow_false=Arrow(), ):
+        Node.__init__(self, name=name, class_name=class_name, parameters=parameters,
+                      x=x, y=y, width=width, height=height)
+        self.arrow_true = arrow_true
+        self.arrow_false = arrow_false
+        self.next_node_default = next_node_default
+        self.next_node_cases = next_node_cases
+        self.next_node_true = next_node_true
+        self.next_node_false = next_node_false
+
 
 class NodeGroup():
     def __init__(self):

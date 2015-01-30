@@ -465,8 +465,8 @@ class DomManager:
 
     def removeNodeGroup(self, node_group):
         for node in node_group:
-                self.removeNode(node.name)
-                self.removeNextNodeReferences(node.name)
+            self.removeNode(node.name)
+            self.removeNextNodeReferences(node.name)
             for ex_node_group in node_group.node_group_list:
                 for node in ex_node_group:
                     self.removeNode(node.name)

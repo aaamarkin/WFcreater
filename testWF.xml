@@ -1,0 +1,447 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE Workflow
+  SYSTEM 'workflow.dtd'>
+<Workflow Init-On-Startup="false" Unique="false" auditEnabled="true" autoAuditEnabled="true" disablePersistence="false" statEnabled="true">
+   <Name>testWF</Name>
+   <Solution>Default_WF_solution</Solution>
+   <Start-Node/>
+   <Nodes>
+      <Process-Node>
+         <Name>LogDebug: getMyDataByIdentifier results</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: Rest request: %s. Rest response :%s."/>
+            <Param name="param0" value="variable:transaction_id"/>
+            <Param name="param1" value="variable:JOB_ID"/>
+            <Param name="param2" value="variable:transaction_initiator"/>
+            <Param name="log_level" value="DEBUG"/>
+            <Param name="param4" value="variable:response_json_log"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="param3" value="variable:request_json_log"/>
+         </Action>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogError: getMyDataByIdentifier sy error</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="param5" value="error_comment"/>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: Rest request: %s. Rest response :%s. composite error error_code=%s, error_message=%s, comment=%s"/>
+            <Param name="param0" value="variable:transaction_id"/>
+            <Param name="param1" value="variable:JOB_ID"/>
+            <Param name="param2" value="variable:transaction_initiator"/>
+            <Param name="log_level" value="constant:ERROR"/>
+            <Param name="param4" value="error_message"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="param3" value="error_code"/>
+         </Action>
+      </Process-Node>
+      <Process-Node>
+         <Name>Set getMyDataByIdentifier sy error</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="error_code" value="%sy_error_code%"/>
+            <Param name="error_message" value="%sy_error_message%"/>
+            <Param name="error_comment" value="query params: request: %request_json_log%, response: %response_json_log%, url: %composite_name_log%."/>
+         </Action>
+         <Next-Node>LogError: getMyDataByIdentifier sy error</Next-Node>
+      </Process-Node>
+      <Rule-Node>
+         <Name>SY code == OK?</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Equal</Class-Name>
+            <Param name="op2" value="constant:OK"/>
+            <Param name="op1" value="variable:sy_error_code"/>
+         </Action>
+         <True-Next-Node>LogDebug: getMyDataByIdentifier results</True-Next-Node>
+         <False-Next-Node>Set getMyDataByIdentifier sy error</False-Next-Node>
+      </Rule-Node>
+      <Process-Node>
+         <Name>Parse get_my_data_by_identifier_response_json</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonGetter</Class-Name>
+            <Param name="json_document" value="variable:get_my_data_by_identifier_response_json"/>
+            <Param name="value0" value="variable:sy_error_message"/>
+            <Param name="value1" value="variable:sy_error_code"/>
+            <Param name="skip_flag" value="constant:true"/>
+            <Param name="path1" value="constant:errorCode"/>
+            <Param name="path0" value="constant:errorMessage"/>
+         </Action>
+         <Next-Node>SY code == OK?</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogError: getMyDataByIdentifier rest error</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: Rest request: %s. Rest response :%s. rest query error error_code=%s, error_message=%s"/>
+            <Param name="param0" value="variable:transaction_id"/>
+            <Param name="param1" value="variable:JOB_ID"/>
+            <Param name="param2" value="variable:transaction_initiator"/>
+            <Param name="log_level" value="constant:ERROR"/>
+            <Param name="param4" value="error_message"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+            <Param name="param3" value="error_code"/>
+         </Action>
+      </Process-Node>
+      <Process-Node>
+         <Name>Set getMyDataByIdentifier rest error</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="error_code" value="HPSA_WF-001"/>
+            <Param name="error_message" value="rest query error %http_code%; query params: request: %request_json_log%, url: %composite_name_log%."/>
+         </Action>
+         <Next-Node>LogError: getMyDataByIdentifier rest error</Next-Node>
+      </Process-Node>
+      <Rule-Node>
+         <Name>http code == 200?</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Equal</Class-Name>
+            <Param name="op2" value="constant:200"/>
+            <Param name="op1" value="variable:http_code"/>
+         </Action>
+         <True-Next-Node>Parse get_my_data_by_identifier_response_json</True-Next-Node>
+         <False-Next-Node>Set getMyDataByIdentifier rest error</False-Next-Node>
+      </Rule-Node>
+      <Process-Node>
+         <Name>Log getMyDataByIdentifier params</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.VariableMapper</Class-Name>
+            <Param name="request_json_log" value="%get_my_data_by_identifier_request_json%"/>
+            <Param name="composite_name_log" value="%get_my_data_by_identifier_url%"/>
+            <Param name="response_json_log" value="%get_my_data_by_identifier_response_json%"/>
+         </Action>
+         <Next-Node>http code == 200?</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>Call getMyDataByIdentifier</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.http.nodes.MakeRestRequest</Class-Name>
+            <Param name="request_url" value="variable:get_my_data_by_identifier_url"/>
+            <Param name="response_code" value="variable:http_code"/>
+            <Param name="response_json" value="variable:get_my_data_by_identifier_response_json"/>
+            <Param name="request_type" value="constant:POST"/>
+            <Param name="request_json" value="variable:get_my_data_by_identifier_request_json"/>
+         </Action>
+         <Next-Node>Log getMyDataByIdentifier params</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>Set get_my_data_by_identifier_request_json</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter</Class-Name>
+            <Param name="input_json" value="variable:base_request"/>
+            <Param name="output_json" value="variable:get_my_data_by_identifier_request_json"/>
+         </Action>
+         <Next-Node>Call getMyDataByIdentifier</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>LogDebug: getMyDataByIdentifier</Name>
+         <Action>
+            <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
+            <Param name="component_name" value="variable:WORKFLOW_NAME"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s:  started rest request getMyDataByIdentifier"/>
+            <Param name="param0" value="variable:transaction_id"/>
+            <Param name="param1" value="variable:JOB_ID"/>
+            <Param name="param2" value="variable:transaction_initiator"/>
+            <Param name="log_level" value="constant:DEBUG"/>
+            <Param name="log_manager" value="variable:log_manager"/>
+         </Action>
+         <Next-Node>Set get_my_data_by_identifier_request_json</Next-Node>
+      </Process-Node>
+   </Nodes>
+   <Case-Packet>
+      <Variable name="BREAK_POINT" type="String"/>
+      <Variable name="DEFAULT_ROLE" type="String"/>
+      <Variable name="EMPTY_STRING" type="String"/>
+      <Variable name="ETC" type="String"/>
+      <Variable name="EX_STEP_NAME" type="String"/>
+      <Variable name="FILE_URL_PREFIX" type="String"/>
+      <Variable name="HOST_NAME" type="String"/>
+      <Variable name="JOB_ID" type="Integer"/>
+      <Variable name="KILL_ROLE" type="String"/>
+      <Variable name="MASTER_CHILD_JOBS" type="Object"/>
+      <Variable name="NULL" type="Object"/>
+      <Variable name="PRIORITY" type="Integer"/>
+      <Variable name="RESERVATIONS" type="Object"/>
+      <Variable name="RET_TEXT" type="String"/>
+      <Variable name="RET_VALUE" type="Integer"/>
+      <Variable name="RUNTIME" type="Object"/>
+      <Variable name="SCHEDULED_INFO" type="Object"/>
+      <Variable name="SERVICE_ID" type="String"/>
+      <Variable name="SOLUTION_ETC" type="String"/>
+      <Variable name="SOLUTION_NAME" type="String"/>
+      <Variable name="SOLUTION_VAR" type="String"/>
+      <Variable name="START_ROLE" type="String"/>
+      <Variable name="START_TIME" type="Integer"/>
+      <Variable name="STATUS" type="String"/>
+      <Variable name="STEP_NAME" type="String"/>
+      <Variable name="SUBSTEP" type="String"/>
+      <Variable name="THROW_EXCEP" type="Boolean"/>
+      <Variable name="TIMEOUT" type="Boolean"/>
+      <Variable name="TRACE_ROLE" type="String"/>
+      <Variable name="UNIQUE_WORKFLOW" type="Integer"/>
+      <Variable name="VAR" type="String"/>
+      <Variable name="WORKFLOW_EXCEPTION" type="Object"/>
+      <Variable name="WORKFLOW_EXECUTION_STATUS" type="String"/>
+      <Variable name="WORKFLOW_NAME" type="String"/>
+      <Variable name="WORKFLOW_ORDER_ID" type="String"/>
+      <Variable name="WORKFLOW_STATE" type="String"/>
+      <Variable name="WORKFLOW_TYPE" type="String"/>
+      <Variable name="WORKFLOW_VERSION" type="Integer"/>
+      <Variable name="activation_description" type="String"/>
+      <Variable name="activation_major_code" type="Integer"/>
+      <Variable name="activation_minor_code" type="Integer"/>
+      <Variable name="message_url" type="String"/>
+      <Variable name="module_name" type="String"/>
+      <Variable name="skip_activation" type="Boolean"/>
+   </Case-Packet>
+   <Initial-Case-Packet>
+      <Variable-Value name="FILE_URL_PREFIX" value="file:///"/>
+      <Variable-Value name="SOLUTION_NAME" value="Default_WF_solution"/>
+      <Variable-Value name="WORKFLOW_NAME" value="testWF"/>
+      <Variable-Value name="WORKFLOW_VERSION" value="-1"/>
+   </Initial-Case-Packet>
+   <Coordinates>
+      <Position>
+         <Name>LogDebug: getMyDataByIdentifier results</Name>
+         <X>500</X>
+         <Y>1600</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogError: getMyDataByIdentifier sy error</Name>
+         <X>500</X>
+         <Y>1500</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set getMyDataByIdentifier sy error</Name>
+         <X>500</X>
+         <Y>1400</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>SY code == OK?</Name>
+         <X>500</X>
+         <Y>1300</Y>
+         <Width>100</Width>
+         <Height>24</Height>
+      </Position>
+      <Position>
+         <Name>Parse get_my_data_by_identifier_response_json</Name>
+         <X>500</X>
+         <Y>1200</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogError: getMyDataByIdentifier rest error</Name>
+         <X>500</X>
+         <Y>1100</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set getMyDataByIdentifier rest error</Name>
+         <X>500</X>
+         <Y>1000</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>http code == 200?</Name>
+         <X>500</X>
+         <Y>900</Y>
+         <Width>100</Width>
+         <Height>24</Height>
+      </Position>
+      <Position>
+         <Name>Log getMyDataByIdentifier params</Name>
+         <X>500</X>
+         <Y>800</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Call getMyDataByIdentifier</Name>
+         <X>500</X>
+         <Y>700</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Set get_my_data_by_identifier_request_json</Name>
+         <X>500</X>
+         <Y>600</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>LogDebug: getMyDataByIdentifier</Name>
+         <X>500</X>
+         <Y>500</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Arrows>
+         <Name>LogDebug: getMyDataByIdentifier results</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogError: getMyDataByIdentifier sy error</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set getMyDataByIdentifier sy error</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>SY code == OK?</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Parse get_my_data_by_identifier_response_json</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogError: getMyDataByIdentifier rest error</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set getMyDataByIdentifier rest error</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>http code == 200?</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Log getMyDataByIdentifier params</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Call getMyDataByIdentifier</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Set get_my_data_by_identifier_request_json</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>LogDebug: getMyDataByIdentifier</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+   </Coordinates>
+</Workflow>
