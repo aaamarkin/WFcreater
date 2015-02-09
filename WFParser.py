@@ -17,7 +17,10 @@ import re
 #6 Create method setStartNode
 #7 Add raise exception to addHandler method
 #8 Modify WFVariables to save typical variable names (error_code, error_message, etc)
-#9 Complete getNode method
+#9 Complete node classes, parse and __init__ to have attributes (persistence and disable)
+#10 Modify SwitchNode constructor
+#11 Modify RuleNode constructor
+#12 Construct more effective tree model from DomTree
 
 # Helper functions
 def formatXml(file_name):
@@ -116,28 +119,70 @@ class DomManager:
         return False
         
     def hasNodeName(self, node_name):
-        process_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_PROCESS_NODE)
-                
-        for node in process_nodes:
-            exist_node_name = node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
-            if exist_node_name == node_name:
-                return True
-        
-        rule_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_RULE_NODE)
-        
-        for node in rule_nodes:
-            exist_node_name = node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
-            if exist_node_name == node_name:
-                return True
-                
-        return False
+
+        return self.getNode(node_name) is not None
 
     def getNode(self, node_name):
+        xml_node = None
         if self.getWFName() != node_name:
+
+            process_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_PROCESS_NODE)
+
+            for node in process_nodes:
+                exist_node_name = node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+                if exist_node_name == node_name:
+                    xml_node = node
+
+            rule_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_RULE_NODE)
+
+            for node in rule_nodes:
+                exist_node_name = node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+                if exist_node_name == node_name:
+                    xml_node = node
+
+            switch_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_SWITCH_NODE)
+
+            for node in switch_nodes:
+                exist_node_name = node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+                if exist_node_name == node_name:
+                    xml_node = node
+
+            if xml_node is not None:
+                new_process_node_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+
+                name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
+                for name_node in name_nodes:
+                    if name_node.firstChild.nodeValue == new_process_node_name \
+                            and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                        xml_position = name_node.parentNode
+                    if name_node.firstChild.nodeValue == new_process_node_name \
+                            and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
+                        xml_arrows = name_node.parentNode
+
+                xml_node = ProcessNode(xml_node=xml_node, xml_position=xml_position, xml_arrows=xml_arrows)
+
+        return xml_node
+
+    def getAllNodesNodeGroup(self):
+        allNodes = NodeGroup()
+
+        process_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_PROCESS_NODE)
+
+        for new_process_node in process_nodes:
+            new_process_node_name = new_process_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+
             name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
             for name_node in name_nodes:
-                if name_node.firstChild.nodeValue == node_name:
-                    xml_node = name_node.parentNode
+                if name_node.firstChild.nodeValue == new_process_node_name \
+                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                    xml_position = name_node.parentNode
+                if name_node.firstChild.nodeValue == new_process_node_name \
+                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                    xml_arrows = name_node.parentNode
+
+
+
+
 
     def integrateRestGroup(self, node_group):
         self.addNodeGroup(node_group)
@@ -178,16 +223,14 @@ class DomManager:
             raise DuplicateNodeError(node.name)
         else:
             all_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NODES)[0]
-            node_to_add = self.createXmlNode(node)
-            all_nodes.appendChild(node_to_add)
+            all_nodes.appendChild(node.createXmlNode())
             
             coordinates = self.collection.getElementsByTagName(WFConstants.TAG_NAME_COORDINATES)[0]
 
-            coordinates_and_arrows = self.createXmlPosAndArrows(node)
-            coordinates.appendChild(coordinates_and_arrows[1])
+            coordinates.appendChild(node.arrowsToXml())
             
             arrows = self.collection.getElementsByTagName(WFConstants.TAG_NAME_ARROWS)[0]
-            coordinates.insertBefore(coordinates_and_arrows[0], arrows)
+            coordinates.insertBefore(node.positionToXml(), arrows)
 
 
     @exception
@@ -281,159 +324,6 @@ class DomManager:
 
         return xml_handler
 
-    def createXmlNode(self, node):
-        doc = Document()
-
-        if isinstance(node, ProcessNode):
-            xml_node = doc.createElement(WFConstants.TAG_NAME_PROCESS_NODE)
-        if isinstance(node, RuleNode):
-            xml_node = doc.createElement(WFConstants.TAG_NAME_RULE_NODE)
-        
-        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
-        xml_name_node_content = doc.createTextNode(node.name)
-        xml_name_node.appendChild(xml_name_node_content)
-        
-        xml_action_node = doc.createElement(WFConstants.TAG_NAME_ACTION)
-        
-        xml_class_name_node = doc.createElement(WFConstants.TAG_NAME_CLASS_NAME)
-        xml_class_name_node_content =  doc.createTextNode(node.class_name)
-        xml_class_name_node.appendChild(xml_class_name_node_content)
-        
-        xml_action_node.appendChild(xml_class_name_node)
-        
-        for parameter in node.parameters:
-        
-            xml_param_node = doc.createElement(WFConstants.TAG_NAME_PARAM)
-            xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, parameter.name)
-            if not parameter.without_prefix:
-                if parameter.is_constant:
-                    prefix = "constant:"
-                else:
-                    prefix = "variable:"
-                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, prefix + parameter.value)
-            else:
-                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, parameter.value)
-            xml_action_node.appendChild(xml_param_node)
-        
-                
-        xml_node.appendChild(xml_name_node)
-        xml_node.appendChild(xml_action_node)
-        
-        if isinstance(node, ProcessNode):
-            if len(node.next_node) > 0:
-                xml_next_node = doc.createElement(WFConstants.TAG_NAME_NEXT_NODE)
-                xml_next_node_content =  doc.createTextNode(node.next_node)
-                xml_next_node.appendChild(xml_next_node_content)
-                xml_node.appendChild(xml_next_node)
-        
-        if isinstance(node, RuleNode):
-            if len(node.next_node_true) > 0:
-                xml_next_node = doc.createElement(WFConstants.TAG_NAME_NEXT_NODE_TRUE)
-                xml_next_node_content =  doc.createTextNode(node.next_node_true)
-                xml_next_node.appendChild(xml_next_node_content)
-                xml_node.appendChild(xml_next_node)
-            if len(node.next_node_false) > 0:
-                xml_next_node = doc.createElement(WFConstants.TAG_NAME_NEXT_NODE_FALSE)
-                xml_next_node_content =  doc.createTextNode(node.next_node_false)
-                xml_next_node.appendChild(xml_next_node_content)
-                xml_node.appendChild(xml_next_node)
-
-        return xml_node
-        
-    def createXmlPosAndArrows(self, node):
-        doc = Document()
-    
-        xml_position_node = doc.createElement(WFConstants.TAG_NAME_POSITION)
-        
-        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
-        xml_name_node_content = doc.createTextNode(node.name)
-        xml_name_node.appendChild(xml_name_node_content)
-        
-        xml_x_node = doc.createElement(WFConstants.TAG_NAME_X)
-        xml_x_node_content = doc.createTextNode(node.x)
-        xml_x_node.appendChild(xml_x_node_content)
-        
-        xml_y_node = doc.createElement(WFConstants.TAG_NAME_Y)
-        xml_y_node_content = doc.createTextNode(node.y)
-        xml_y_node.appendChild(xml_y_node_content)
-        
-        xml_width_node = doc.createElement(WFConstants.TAG_NAME_WIDTH)
-        xml_width_node_content = doc.createTextNode(node.width)
-        xml_width_node.appendChild(xml_width_node_content)
-        
-        xml_height_node = doc.createElement(WFConstants.TAG_NAME_HEIGHT)
-        xml_height_node_content = doc.createTextNode(node.height)
-        xml_height_node.appendChild(xml_height_node_content)
-        
-           
-        xml_position_node.appendChild(xml_name_node)
-        xml_position_node.appendChild(xml_x_node)
-        xml_position_node.appendChild(xml_y_node)
-        xml_position_node.appendChild(xml_width_node)
-        xml_position_node.appendChild(xml_height_node)
-        
-        xml_arrows_node = doc.createElement(WFConstants.TAG_NAME_ARROWS)
-        
-        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
-        xml_name_node_content = doc.createTextNode(node.name)
-        xml_name_node.appendChild(xml_name_node_content)
-        
-        xml_true_arrow = doc.createElement(WFConstants.TAG_NAME_TRUE_ARROW)
-        
-        xml_true_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
-        if isinstance(node, ProcessNode):
-            xml_true_arrow_type_content = doc.createTextNode(node.arrow.type)
-            xml_true_arrow_type_delta_x_content = doc.createTextNode(node.arrow.delta_x)
-            xml_true_arrow_type_delta_y_content = doc.createTextNode(node.arrow.delta_y)
-        if isinstance(node, RuleNode):
-            xml_true_arrow_type_content =  doc.createTextNode(node.arrow_true.type)
-            xml_true_arrow_type_delta_x_content = doc.createTextNode(node.arrow_true.delta_x)
-            xml_true_arrow_type_delta_y_content = doc.createTextNode(node.arrow_true.delta_y)
-        
-        xml_true_arrow_type.appendChild(xml_true_arrow_type_content)
-        
-        xml_true_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
-        xml_true_arrow_delta_x.appendChild(xml_true_arrow_type_delta_x_content)
-        
-        xml_true_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
-        xml_true_arrow_delta_y.appendChild(xml_true_arrow_type_delta_y_content)
-        
-        xml_false_arrow = doc.createElement(WFConstants.TAG_NAME_FALSE_ARROW)
-        
-        xml_false_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
-        if isinstance(node, ProcessNode):
-            xml_false_arrow_type_content =  doc.createTextNode(node.arrow.type)
-            xml_false_arrow_type_delta_x_content =  doc.createTextNode(node.arrow.delta_x)
-            xml_false_arrow_type_delta_y_content =  doc.createTextNode(node.arrow.delta_y)
-        if isinstance(node, RuleNode):
-            xml_false_arrow_type_content =  doc.createTextNode(node.arrow_false.type)
-            xml_false_arrow_type_delta_x_content =  doc.createTextNode(node.arrow_false.delta_x)
-            xml_false_arrow_type_delta_y_content =  doc.createTextNode(node.arrow_false.delta_y)
-
-        xml_false_arrow_type.appendChild(xml_false_arrow_type_content)
-        
-        xml_false_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
-        xml_false_arrow_delta_x.appendChild(xml_false_arrow_type_delta_x_content)
-        
-        xml_false_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
-        xml_false_arrow_delta_y.appendChild(xml_false_arrow_type_delta_y_content)
-        
-        xml_true_arrow.appendChild(xml_true_arrow_type)
-        xml_true_arrow.appendChild(xml_true_arrow_delta_x)
-        xml_true_arrow.appendChild(xml_true_arrow_delta_y)
-        
-        xml_false_arrow.appendChild(xml_false_arrow_type)
-        xml_false_arrow.appendChild(xml_false_arrow_delta_x)
-        xml_false_arrow.appendChild(xml_false_arrow_delta_y)
-        
-        
-        xml_arrows_node.appendChild(xml_name_node)
-        xml_arrows_node.appendChild(xml_true_arrow)
-        xml_arrows_node.appendChild(xml_false_arrow)
-        
-        
-        return (xml_position_node, xml_arrows_node)
-
     def removeNextNodeReferences(self, node_name):
         process_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_PROCESS_NODE)
         rule_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_RULE_NODE)
@@ -507,27 +397,20 @@ if __name__ == '__main__':
         next_node_false = "Second json setter",
         x = "300", y = "200")
 
-        group = NodeGroup()
-        group.injectNode(new_process_node)
-        group.injectNode(second_node)
-        group.injectNode(rule_node)
 
-        group2 = NodeGroup() 
-        group2.injectNode(rule_node_2)
-        group.addGroup(group2)
-
-        restGroup = RestRequestGroup('solution-composite-name/service-name/getMyDataByIdentifier')
-
-        restGroup.makeVertical(initial_y=500, step=100)
-        restGroup.moveX(500)
         #dom_manager.addNodeTest(rule_node)
         #dom_manager.addNode(rule_node)
+        node_test = dom_manager.getNode('call getCustomerById11')
+        #dom_manager.removeNextNodeReferences('Init params')
+        dom_manager.removeNode('call getCustomerById11')
+        dom_manager.addNode(node_test)
 
         try:
-            dom_manager.addNodeGroup(restGroup)
+            #print node_test
+            #dom_manager.addNodeGroup(restGroup)
             #dom_manager.removeNextNodeReferences("logger")
             #dom_manager.removeNode("Default_WF")
-            #dom_manager.addNode(rule_node)
+
 
             #dom_manager.renameWF("Renamed_WF")
 

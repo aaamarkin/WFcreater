@@ -1,3 +1,5 @@
+import WFVariables
+
 #Tag name constants
 TAG_NAME_START_NODE = "Start-Node"
 TAG_NAME_POSITION = "Position"
@@ -5,11 +7,14 @@ TAG_NAME_NAME = "Name"
 TAG_NAME_CLASS_NAME = "Class-Name"
 TAG_NAME_PROCESS_NODE = "Process-Node"
 TAG_NAME_RULE_NODE = "Rule-Node"
+TAG_NAME_SWITCH_NODE = "Switch-Node"
 TAG_NAME_ACTION = "Action"
 TAG_NAME_PARAM = "Param"
 TAG_NAME_NEXT_NODE = "Next-Node"
 TAG_NAME_NEXT_NODE_TRUE = "True-Next-Node"
 TAG_NAME_NEXT_NODE_FALSE = "False-Next-Node"
+TAG_NAME_SWITCH = "Switch"
+TAG_NAME_DEFAULT = "Default"
 TAG_NAME_CASE_PACKET = "Case-Packet"
 TAG_NAME_INIT_CASE_PACKET = "Initial-Case-Packet"
 TAG_NAME_CASE_PACKET_VAR = "Variable"
@@ -23,6 +28,9 @@ TAG_NAME_HEIGHT = "Height"
 TAG_NAME_ARROWS = "Arrows"
 TAG_NAME_TRUE_ARROW = "True-Arrow"
 TAG_NAME_FALSE_ARROW = "False-Arrow"
+TAG_NAME_SWITCH_ARROW = "Switch-Arrow"
+TAG_NAME_DEFAULT_ARROW = "Default-Arrow"
+TAG_NAME_CASE_ARROW = "Case-Arrow"
 TAG_NAME_TYPE = "Type"
 TAG_NAME_DELTA_X = "DeltaX"
 TAG_NAME_DELTA_Y = "DeltaY"
@@ -43,6 +51,7 @@ CLASS_NAME_GET_PROPERTY = "ru.deltasolutions.common.activator.mwfm.property.node
 CLASS_NAME_GET_LOCK = "ru.deltasolutions.common.activator.mwfm.lock.nodes.GetLock"
 CLASS_NAME_DO_NOTHING = "com.hp.ov.activator.mwfm.component.builtin.DoNothing"
 CLASS_NAME_MAKE_REST_REQUEST = "ru.deltasolutions.common.activator.mwfm.http.nodes.MakeRestRequest"
+CLASS_NAME_MAKE_REST_REQUEST_SWITCH = "ru.deltasolutions.common.activator.mwfm.http.nodes.MakeRestRequestSwitch"
 CLASS_NAME_EQUALS = "com.hp.ov.activator.mwfm.component.builtin.Equal"
 CLASS_NAME_LOG_HANDLER = "ru.deltasolutions.common.activator.mwfm.log.handlers.LogHandler"
 CLASS_NAME_SYNC_HANDLER = "com.hp.ov.activator.mwfm.component.builtin.SyncHandler"
@@ -131,10 +140,10 @@ SET_INITIAL_VALUE_PARAMS = {
 }
 
 #Get switchyard properties node constants
-value_protocol = "variable:" + VARIABLE_NAME_SY_PROTOCOL
-value_ip = "variable:" + VARIABLE_NAME_SY_IP
-value_port = "variable:" + VARIABLE_NAME_SY_PORT
-value_timeout = "variable:" + VARIABLE_NAME_LOCK_TIME
+value_protocol = "variable:" + WFVariables.VARIABLE_NAME_SY_PROTOCOL
+value_ip = "variable:" + WFVariables.VARIABLE_NAME_SY_IP
+value_port = "variable:" + WFVariables.VARIABLE_NAME_SY_PORT
+value_timeout = "variable:" + WFVariables.VARIABLE_NAME_LOCK_TIME
 GET_PROPERTIES_PARAMS = {
     "property_module":"variable:property_module",
     "key0":"constant:sy_protocol",

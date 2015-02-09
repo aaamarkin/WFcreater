@@ -1,4 +1,7 @@
 import sys, traceback
+from xml.dom.minidom import parse
+import xml.dom.minidom
+from xml.dom.minidom import Document
 import WFConstants
 import WFVariables
 import re
@@ -9,14 +12,15 @@ from WFExceptions import DuplicateNodeError, DuplicateParamError
 # Classes
 
 class Arrow:
-    def __init__(self, type="0", delta_x="0", delta_y="0"):
+    def __init__(self, type="0", delta_x="0", delta_y="0", name=""):
         self.type = type
         self.delta_x = delta_x
         self.delta_y = delta_y
+        self.name=name
 
 
 class Parameter:
-    def __init__(self, name, value, is_mandatory=False, type = "String"):
+    def __init__(self, name, value, is_mandatory=False, type="String"):
         self.name = name
         self.setValue(value)
         self.type = type
@@ -99,14 +103,16 @@ class Parameters:
         self.index = self.index - 1
         return self.parameters[self.index]
 
+
 class Handler:
-    def __init__(self, name="", class_name="",  parameters=Parameters({})):
+    def __init__(self, name="", class_name="", parameters=Parameters({})):
         self.name = name
         self.class_name = class_name
         self.parameters = parameters
 
     def __str__(self):
         return "Handler " + self.name
+
 
 class Node:
     def __init__(self, name="", class_name="", parameters=Parameters({}),
@@ -120,42 +126,600 @@ class Node:
         self.height = height
         self.previous_node_names = previous_node_names
 
+    def positionToXml(self):
+        doc = Document()
+
+        xml_position_node = doc.createElement(WFConstants.TAG_NAME_POSITION)
+
+        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_node_content = doc.createTextNode(self.name)
+        xml_name_node.appendChild(xml_name_node_content)
+
+        xml_x_node = doc.createElement(WFConstants.TAG_NAME_X)
+        xml_x_node_content = doc.createTextNode(self.x)
+        xml_x_node.appendChild(xml_x_node_content)
+
+        xml_y_node = doc.createElement(WFConstants.TAG_NAME_Y)
+        xml_y_node_content = doc.createTextNode(self.y)
+        xml_y_node.appendChild(xml_y_node_content)
+
+        xml_width_node = doc.createElement(WFConstants.TAG_NAME_WIDTH)
+        xml_width_node_content = doc.createTextNode(self.width)
+        xml_width_node.appendChild(xml_width_node_content)
+
+        xml_height_node = doc.createElement(WFConstants.TAG_NAME_HEIGHT)
+        xml_height_node_content = doc.createTextNode(self.height)
+        xml_height_node.appendChild(xml_height_node_content)
+
+        xml_position_node.appendChild(xml_name_node)
+        xml_position_node.appendChild(xml_x_node)
+        xml_position_node.appendChild(xml_y_node)
+        xml_position_node.appendChild(xml_width_node)
+        xml_position_node.appendChild(xml_height_node)
+
+        return xml_position_node
+
     def __str__(self):
         return "Node " + self.name + ". Class " + self.class_name + ". Parameters: " + self.parameters.__str__()
 
 
 class ProcessNode(Node):
     def __init__(self, name="", class_name="", parameters=Parameters({}),
-                 next_node="", x="0", y="0", width="100", height="48", arrow=Arrow()):
-        Node.__init__(self, name=name, class_name=class_name, parameters=parameters,
-                      x=x, y=y, width=width, height=height)
-        self.arrow = arrow
-        self.next_node = next_node
+                 next_node="", x="0", y="0", width="100", height="48", arrow=Arrow(), **kwargs):
+
+        if 'xml_node' in kwargs:
+            xml_node = kwargs.get('xml_node')
+            node_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+            node_class_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_CLASS_NAME)[0].childNodes[0].data
+            xml_params = xml_node.getElementsByTagName(WFConstants.TAG_NAME_PARAM)
+            param_dict = {}
+            for xml_param in xml_params:
+                param_dict[xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_NAME)] = \
+                    xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_VALUE)
+            params = Parameters(param_dict)
+            node_next_node = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NEXT_NODE)[0].childNodes[0].data
+        else:
+            node_name = name
+            node_class_name = class_name
+            params = parameters
+            node_next_node = next_node
+
+        if 'xml_position' in kwargs:
+            xml_position = kwargs.get('xml_position')
+            node_x_pos = xml_position.getElementsByTagName(WFConstants.TAG_NAME_X)[0].childNodes[0].data
+            node_y_pos = xml_position.getElementsByTagName(WFConstants.TAG_NAME_Y)[0].childNodes[0].data
+            node_width = xml_position.getElementsByTagName(WFConstants.TAG_NAME_WIDTH)[0].childNodes[0].data
+            node_height = xml_position.getElementsByTagName(WFConstants.TAG_NAME_HEIGHT)[0].childNodes[0].data
+        else:
+            node_x_pos = x
+            node_y_pos = y
+            node_width = width
+            node_height = height
+
+        if 'xml_arrows' in kwargs:
+            xml_arrows = kwargs.get('xml_arrows')
+            xml_true_arrow = xml_arrows.getElementsByTagName(WFConstants.TAG_NAME_TRUE_ARROW)
+            node_true_type = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_TYPE)[0].childNodes[0].data
+            node_true_delta_x = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_X)[0].childNodes[0].data
+            node_true_delta_y = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_Y)[0].childNodes[0].data
+            xml_arrow = Arrow(type=str(node_true_type), delta_x=str(node_true_delta_x), delta_y=str(node_true_delta_y))
+        else:
+            xml_arrow = arrow
+
+        Node.__init__(self, name=node_name, class_name=node_class_name, parameters=params,
+                      x=node_x_pos, y=node_y_pos, width=node_width, height=node_height)
+
+        self.arrow = xml_arrow
+        self.next_node = node_next_node
+
+    def createXmlNode(self):
+        doc = Document()
+
+        xml_node = doc.createElement(WFConstants.TAG_NAME_PROCESS_NODE)
+
+        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_node_content = doc.createTextNode(self.name)
+        xml_name_node.appendChild(xml_name_node_content)
+
+        xml_action_node = doc.createElement(WFConstants.TAG_NAME_ACTION)
+
+        xml_class_name_node = doc.createElement(WFConstants.TAG_NAME_CLASS_NAME)
+        xml_class_name_node_content =  doc.createTextNode(self.class_name)
+        xml_class_name_node.appendChild(xml_class_name_node_content)
+
+        xml_action_node.appendChild(xml_class_name_node)
+
+        for parameter in self.parameters:
+
+            xml_param_node = doc.createElement(WFConstants.TAG_NAME_PARAM)
+            xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, parameter.name)
+            if not parameter.without_prefix:
+                if parameter.is_constant:
+                    prefix = "constant:"
+                else:
+                    prefix = "variable:"
+                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, prefix + parameter.value)
+            else:
+                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, parameter.value)
+            xml_action_node.appendChild(xml_param_node)
+
+
+        xml_node.appendChild(xml_name_node)
+        xml_node.appendChild(xml_action_node)
+
+        if len(self.next_node) > 0:
+            xml_next_node = doc.createElement(WFConstants.TAG_NAME_NEXT_NODE)
+            xml_next_node_content =  doc.createTextNode(self.next_node)
+            xml_next_node.appendChild(xml_next_node_content)
+            xml_node.appendChild(xml_next_node)
+
+        return xml_node
+
+
+    def arrowsToXml(self):
+        doc = Document()
+
+        xml_arrows_node = doc.createElement(WFConstants.TAG_NAME_ARROWS)
+
+        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_node_content = doc.createTextNode(self.name)
+        xml_name_node.appendChild(xml_name_node_content)
+
+        xml_true_arrow = doc.createElement(WFConstants.TAG_NAME_TRUE_ARROW)
+
+        xml_true_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+
+        xml_true_arrow_type_content = doc.createTextNode(self.arrow.type)
+        xml_true_arrow_type_delta_x_content = doc.createTextNode(self.arrow.delta_x)
+        xml_true_arrow_type_delta_y_content = doc.createTextNode(self.arrow.delta_y)
+
+        xml_true_arrow_type.appendChild(xml_true_arrow_type_content)
+
+        xml_true_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+        xml_true_arrow_delta_x.appendChild(xml_true_arrow_type_delta_x_content)
+
+        xml_true_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+        xml_true_arrow_delta_y.appendChild(xml_true_arrow_type_delta_y_content)
+
+        xml_false_arrow = doc.createElement(WFConstants.TAG_NAME_FALSE_ARROW)
+
+        xml_false_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+
+        xml_false_arrow_type_content = doc.createTextNode(self.arrow.type)
+        xml_false_arrow_type_delta_x_content = doc.createTextNode(self.arrow.delta_x)
+        xml_false_arrow_type_delta_y_content = doc.createTextNode(self.arrow.delta_y)
+
+        xml_false_arrow_type.appendChild(xml_false_arrow_type_content)
+
+        xml_false_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+        xml_false_arrow_delta_x.appendChild(xml_false_arrow_type_delta_x_content)
+
+        xml_false_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+        xml_false_arrow_delta_y.appendChild(xml_false_arrow_type_delta_y_content)
+
+        xml_true_arrow.appendChild(xml_true_arrow_type)
+        xml_true_arrow.appendChild(xml_true_arrow_delta_x)
+        xml_true_arrow.appendChild(xml_true_arrow_delta_y)
+
+        xml_false_arrow.appendChild(xml_false_arrow_type)
+        xml_false_arrow.appendChild(xml_false_arrow_delta_x)
+        xml_false_arrow.appendChild(xml_false_arrow_delta_y)
+
+        xml_arrows_node.appendChild(xml_name_node)
+        xml_arrows_node.appendChild(xml_true_arrow)
+        xml_arrows_node.appendChild(xml_false_arrow)
+
+        return xml_arrows_node
+
+
 
 
 class RuleNode(Node):
     def __init__(self, name="", class_name="", parameters=Parameters({}),
                  next_node_true="", next_node_false="", x="0", y="0", width="100", height="24",
-                 arrow_true=Arrow(), arrow_false=Arrow()):
-        Node.__init__(self, name=name, class_name=class_name, parameters=parameters,
-                      x=x, y=y, width=width, height=height)
-        self.arrow_true = arrow_true
-        self.arrow_false = arrow_false
-        self.next_node_true = next_node_true
-        self.next_node_false = next_node_false
+                 arrow_true=Arrow(), arrow_false=Arrow(), **kwargs):
+
+        if 'xml_node' in kwargs:
+            xml_node = kwargs.get('xml_node')
+            node_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+            node_class_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_CLASS_NAME)[0].childNodes[0].data
+            xml_params = xml_node.getElementsByTagName(WFConstants.TAG_NAME_PARAM)
+            param_dict = {}
+            for xml_param in xml_params:
+                param_dict[xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_NAME)] = \
+                    xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_VALUE)
+            params = Parameters(param_dict)
+            node_next_true = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NEXT_NODE_TRUE)[0].childNodes[0].data
+            node_next_false = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NEXT_NODE_FALSE)[0].childNodes[0].data
+        else:
+            node_name = name
+            node_class_name = class_name
+            params = parameters
+            node_next_true = next_node_true
+            node_next_false = next_node_false
+
+        if 'xml_position' in kwargs:
+            xml_position = kwargs.get('xml_position')
+            node_x_pos = xml_position.getElementsByTagName(WFConstants.TAG_NAME_X)[0].childNodes[0].data
+            node_y_pos = xml_position.getElementsByTagName(WFConstants.TAG_NAME_Y)[0].childNodes[0].data
+            node_width = xml_position.getElementsByTagName(WFConstants.TAG_NAME_WIDTH)[0].childNodes[0].data
+            node_height = xml_position.getElementsByTagName(WFConstants.TAG_NAME_HEIGHT)[0].childNodes[0].data
+        else:
+            node_x_pos = x
+            node_y_pos = y
+            node_width = width
+            node_height = height
+
+        if 'xml_arrows' in kwargs:
+            xml_arrows = kwargs.get('xml_arrows')
+            xml_true_arrow = xml_arrows.getElementsByTagName(WFConstants.TAG_NAME_TRUE_ARROW)
+            node_true_type = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_TYPE)[0].childNodes[0].data
+            node_true_delta_x = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_X)[0].childNodes[0].data
+            node_true_delta_y = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_Y)[0].childNodes[0].data
+            xml_false_arrow = xml_arrows.getElementsByTagName(WFConstants.TAG_NAME_FALSE_ARROW)
+            node_false_type = xml_false_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_TYPE)[0].childNodes[0].data
+            node_false_delta_x = xml_false_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_X)[0].childNodes[0].data
+            node_false_delta_y = xml_false_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_Y)[0].childNodes[0].data
+            xml_arrow_true = Arrow(type=str(node_true_type), delta_x=str(node_true_delta_x), delta_y=str(node_true_delta_y))
+            xml_arrow_false = Arrow(type=str(node_false_type), delta_x=str(node_false_delta_x), delta_y=str(node_false_delta_y))
+        else:
+            xml_arrow_true = arrow_true
+            xml_arrow_false = arrow_false
+
+
+        Node.__init__(self, name=node_name, class_name=node_class_name, parameters=params,
+                      x=node_x_pos, y=node_y_pos, width=node_width, height=node_height)
+        self.arrow_true = xml_arrow_true
+        self.arrow_false = xml_arrow_false
+        self.next_node_true = node_next_true
+        self.next_node_false = node_next_false
+
+    def createXmlNode(self):
+        doc = Document()
+
+        xml_node = doc.createElement(WFConstants.TAG_NAME_RULE_NODE)
+
+        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_node_content = doc.createTextNode(self.name)
+        xml_name_node.appendChild(xml_name_node_content)
+
+        xml_action_node = doc.createElement(WFConstants.TAG_NAME_ACTION)
+
+        xml_class_name_node = doc.createElement(WFConstants.TAG_NAME_CLASS_NAME)
+        xml_class_name_node_content =  doc.createTextNode(self.class_name)
+        xml_class_name_node.appendChild(xml_class_name_node_content)
+
+        xml_action_node.appendChild(xml_class_name_node)
+
+        for parameter in node.parameters:
+
+            xml_param_node = doc.createElement(WFConstants.TAG_NAME_PARAM)
+            xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, parameter.name)
+            if not parameter.without_prefix:
+                if parameter.is_constant:
+                    prefix = "constant:"
+                else:
+                    prefix = "variable:"
+                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, prefix + parameter.value)
+            else:
+                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, parameter.value)
+            xml_action_node.appendChild(xml_param_node)
+
+
+        xml_node.appendChild(xml_name_node)
+        xml_node.appendChild(xml_action_node)
+
+        if len(self.next_node_true) > 0:
+            xml_next_node = doc.createElement(WFConstants.TAG_NAME_NEXT_NODE_TRUE)
+            xml_next_node_content =  doc.createTextNode(self.next_node_true)
+            xml_next_node.appendChild(xml_next_node_content)
+            xml_node.appendChild(xml_next_node)
+        if len(self.next_node_false) > 0:
+            xml_next_node = doc.createElement(WFConstants.TAG_NAME_NEXT_NODE_FALSE)
+            xml_next_node_content =  doc.createTextNode(self.next_node_false)
+            xml_next_node.appendChild(xml_next_node_content)
+            xml_node.appendChild(xml_next_node)
+
+        return xml_node
+
+    def arrowsToXml(self):
+        doc = Document()
+
+        xml_arrows_node = doc.createElement(WFConstants.TAG_NAME_ARROWS)
+
+        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_node_content = doc.createTextNode(self.name)
+        xml_name_node.appendChild(xml_name_node_content)
+
+        xml_true_arrow = doc.createElement(WFConstants.TAG_NAME_TRUE_ARROW)
+
+        xml_true_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+
+        xml_true_arrow_type_content = doc.createTextNode(self.arrow_true.type)
+        xml_true_arrow_type_delta_x_content = doc.createTextNode(self.arrow_true.delta_x)
+        xml_true_arrow_type_delta_y_content = doc.createTextNode(self.arrow_true.delta_y)
+
+        xml_true_arrow_type.appendChild(xml_true_arrow_type_content)
+
+        xml_true_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+        xml_true_arrow_delta_x.appendChild(xml_true_arrow_type_delta_x_content)
+
+        xml_true_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+        xml_true_arrow_delta_y.appendChild(xml_true_arrow_type_delta_y_content)
+
+        xml_false_arrow = doc.createElement(WFConstants.TAG_NAME_FALSE_ARROW)
+
+        xml_false_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+
+        xml_false_arrow_type_content = doc.createTextNode(self.arrow_false.type)
+        xml_false_arrow_type_delta_x_content = doc.createTextNode(self.arrow_false.delta_x)
+        xml_false_arrow_type_delta_y_content = doc.createTextNode(self.arrow_false.delta_y)
+
+        xml_false_arrow_type.appendChild(xml_false_arrow_type_content)
+
+        xml_false_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+        xml_false_arrow_delta_x.appendChild(xml_false_arrow_type_delta_x_content)
+
+        xml_false_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+        xml_false_arrow_delta_y.appendChild(xml_false_arrow_type_delta_y_content)
+
+        xml_true_arrow.appendChild(xml_true_arrow_type)
+        xml_true_arrow.appendChild(xml_true_arrow_delta_x)
+        xml_true_arrow.appendChild(xml_true_arrow_delta_y)
+
+        xml_false_arrow.appendChild(xml_false_arrow_type)
+        xml_false_arrow.appendChild(xml_false_arrow_delta_x)
+        xml_false_arrow.appendChild(xml_false_arrow_delta_y)
+
+        xml_arrows_node.appendChild(xml_name_node)
+        xml_arrows_node.appendChild(xml_true_arrow)
+        xml_arrows_node.appendChild(xml_false_arrow)
+
+        return xml_arrows_node
+
 
 class SwitchNode(Node):
     def __init__(self, name="", class_name="", parameters=Parameters({}),
                  next_node_default="", next_node_cases={}, x="0", y="0", width="100", height="24",
-                 arrow_true=Arrow(), arrow_false=Arrow(), ):
-        Node.__init__(self, name=name, class_name=class_name, parameters=parameters,
-                      x=x, y=y, width=width, height=height)
-        self.arrow_true = arrow_true
-        self.arrow_false = arrow_false
-        self.next_node_default = next_node_default
-        self.next_node_cases = next_node_cases
-        self.next_node_true = next_node_true
-        self.next_node_false = next_node_false
+                 arrow_default=Arrow(), arrow_cases=[], arrow_true=Arrow(), arrow_false=Arrow()):
+
+        if 'xml_node' in kwargs:
+            xml_node = kwargs.get('xml_node')
+            node_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+            node_class_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_CLASS_NAME)[0].childNodes[0].data
+            xml_params = xml_node.getElementsByTagName(WFConstants.TAG_NAME_PARAM)
+            param_dict = {}
+            for xml_param in xml_params:
+                param_dict[xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_NAME)] = \
+                    xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_VALUE)
+            params = Parameters(param_dict)
+            node_next_default = xml_node.getElementsByTagName(WFConstants.TAG_NAME_DEFAULT)[0].childNodes[0].data
+            cases_dict  ={}
+            cases = xml_node.getElementsByTagName(WFConstants.TAG_NAME_SWITCH)
+            for case in cases:
+                cases_dict[case.getAttribute(WFConstants.ATTRIBUTE_NAME_NAME)] = case.data
+
+        else:
+            node_name = name
+            node_class_name = class_name
+            params = parameters
+            node_next_default = next_node_default
+            cases_dict = next_node_cases
+
+        if 'xml_position' in kwargs:
+            xml_position = kwargs.get('xml_position')
+            node_x_pos = xml_position.getElementsByTagName(WFConstants.TAG_NAME_X)[0].childNodes[0].data
+            node_y_pos = xml_position.getElementsByTagName(WFConstants.TAG_NAME_Y)[0].childNodes[0].data
+            node_width = xml_position.getElementsByTagName(WFConstants.TAG_NAME_WIDTH)[0].childNodes[0].data
+            node_height = xml_position.getElementsByTagName(WFConstants.TAG_NAME_HEIGHT)[0].childNodes[0].data
+        else:
+            node_x_pos = x
+            node_y_pos = y
+            node_width = width
+            node_height = height
+
+        if 'xml_arrows' in kwargs:
+            xml_arrows = kwargs.get('xml_arrows')
+            xml_true_arrow = xml_arrows.getElementsByTagName(WFConstants.TAG_NAME_TRUE_ARROW)
+            node_true_type = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_TYPE)[0].childNodes[0].data
+            node_true_delta_x = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_X)[0].childNodes[0].data
+            node_true_delta_y = xml_true_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_Y)[0].childNodes[0].data
+            xml_false_arrow = xml_arrows.getElementsByTagName(WFConstants.TAG_NAME_FALSE_ARROW)
+            node_false_type = xml_false_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_TYPE)[0].childNodes[0].data
+            node_false_delta_x = xml_false_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_X)[0].childNodes[0].data
+            node_false_delta_y = xml_false_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_Y)[0].childNodes[0].data
+            xml_default_arrow = xml_arrows.getElementsByTagName(WFConstants.TAG_NAME_DEFAULT_ARROW)
+            node_default_type = xml_default_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_TYPE)[0].childNodes[0].data
+            node_default_delta_x = xml_default_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_X)[0].childNodes[0].data
+            node_default_delta_y = xml_default_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_Y)[0].childNodes[0].data
+            xml_case_arrows = xml_node.getElementsByTagName(WFConstants.TAG_NAME_CASE_ARROW)
+            xml_arrow_cases = []
+            for xml_case_arrow in xml_case_arrows:
+                node_case_type = xml_case_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_TYPE)[0].childNodes[0].data
+                node_case_delta_x = xml_case_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_X)[0].childNodes[0].data
+                node_case_delta_y = xml_case_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_DELTA_Y)[0].childNodes[0].data
+                node_case_name = xml_case_arrow[0].getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+                xml_arrow_cases.append(Arrow(type=str(node_case_type), delta_x=str(node_case_delta_x), delta_y=str(node_case_delta_y), name=node_case_name))
+
+            xml_arrow_true = Arrow(type=str(node_true_type), delta_x=str(node_true_delta_x), delta_y=str(node_true_delta_y))
+            xml_arrow_false = Arrow(type=str(node_false_type), delta_x=str(node_false_delta_x), delta_y=str(node_false_delta_y))
+            xml_arrow_default = Arrow(type=str(node_default_type), delta_x=str(node_default_delta_x), delta_y=str(node_default_delta_y))
+        else:
+            xml_arrow_true = arrow_true
+            xml_arrow_false = arrow_false
+            xml_arrow_default = arrow_default
+            xml_arrow_cases = arrow_cases
+
+
+        Node.__init__(self, name=node_name, class_name=node_class_name, parameters=params,
+                      x=node_x_pos, y=node_y_pos, width=node_width, height=node_height)
+        self.arrow_true = xml_arrow_true
+        self.arrow_false = xml_arrow_false
+        self.next_node_default = node_next_default
+        self.next_node_cases = cases_dict
+        self.arrow_default = xml_arrow_default
+        self.arrow_cases = xml_arrow_cases
+
+    def createXmlNode(self):
+        doc = Document()
+
+        xml_node = doc.createElement(WFConstants.TAG_NAME_SWITCH_NODE)
+
+        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_node_content = doc.createTextNode(self.name)
+        xml_name_node.appendChild(xml_name_node_content)
+
+        xml_action_node = doc.createElement(WFConstants.TAG_NAME_ACTION)
+
+        xml_class_name_node = doc.createElement(WFConstants.TAG_NAME_CLASS_NAME)
+        xml_class_name_node_content =  doc.createTextNode(self.class_name)
+        xml_class_name_node.appendChild(xml_class_name_node_content)
+
+        xml_action_node.appendChild(xml_class_name_node)
+
+        for parameter in node.parameters:
+
+            xml_param_node = doc.createElement(WFConstants.TAG_NAME_PARAM)
+            xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, parameter.name)
+            if not parameter.without_prefix:
+                if parameter.is_constant:
+                    prefix = "constant:"
+                else:
+                    prefix = "variable:"
+                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, prefix + parameter.value)
+            else:
+                xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_VALUE, parameter.value)
+            xml_action_node.appendChild(xml_param_node)
+
+
+        xml_node.appendChild(xml_name_node)
+        xml_node.appendChild(xml_action_node)
+
+        if len(self.next_node_cases.keys()) > 0:
+            for key in next_node_cases.keys():
+                xml_case_node = doc.createElement(WFConstants.TAG_NAME_SWITCH)
+                xml_case_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, key)
+                xml_case_node_content =  doc.createTextNode(next_node_cases[key])
+                xml_case_node.appendChild(xml_case_node_content)
+                xml_node.appendChild(xml_case_node)
+
+        if len(self.next_node_default) > 0:
+            xml_default_node = doc.createElement(WFConstants.TAG_NAME_DEFAULT)
+            xml_default_node_content =  doc.createTextNode(self.next_node_default)
+            xml_default_node.appendChild(xml_default_node_content)
+            xml_node.appendChild(xml_next_node)
+
+        return xml_node
+
+    def arrowsToXml(self):
+
+        xml_arrows_node = doc.createElement(WFConstants.TAG_NAME_ARROWS)
+
+        xml_name_node = doc.createElement(WFConstants.TAG_NAME_NAME)
+        xml_name_node_content = doc.createTextNode(self.name)
+        xml_name_node.appendChild(xml_name_node_content)
+
+        xml_true_arrow = doc.createElement(WFConstants.TAG_NAME_TRUE_ARROW)
+
+        xml_true_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+
+        xml_true_arrow_type_content = doc.createTextNode(self.arrow_true.type)
+        xml_true_arrow_type_delta_x_content = doc.createTextNode(self.arrow_true.delta_x)
+        xml_true_arrow_type_delta_y_content = doc.createTextNode(self.arrow_true.delta_y)
+
+        xml_true_arrow_type.appendChild(xml_true_arrow_type_content)
+
+        xml_true_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+        xml_true_arrow_delta_x.appendChild(xml_true_arrow_type_delta_x_content)
+
+        xml_true_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+        xml_true_arrow_delta_y.appendChild(xml_true_arrow_type_delta_y_content)
+
+        xml_false_arrow = doc.createElement(WFConstants.TAG_NAME_FALSE_ARROW)
+
+        xml_false_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+
+        xml_false_arrow_type_content = doc.createTextNode(self.arrow_false.type)
+        xml_false_arrow_type_delta_x_content = doc.createTextNode(self.arrow_false.delta_x)
+        xml_false_arrow_type_delta_y_content = doc.createTextNode(self.arrow_false.delta_y)
+
+        xml_false_arrow_type.appendChild(xml_false_arrow_type_content)
+
+        xml_false_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+        xml_false_arrow_delta_x.appendChild(xml_false_arrow_type_delta_x_content)
+
+        xml_false_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+        xml_false_arrow_delta_y.appendChild(xml_false_arrow_type_delta_y_content)
+
+        xml_true_arrow.appendChild(xml_true_arrow_type)
+        xml_true_arrow.appendChild(xml_true_arrow_delta_x)
+        xml_true_arrow.appendChild(xml_true_arrow_delta_y)
+
+        xml_false_arrow.appendChild(xml_false_arrow_type)
+        xml_false_arrow.appendChild(xml_false_arrow_delta_x)
+        xml_false_arrow.appendChild(xml_false_arrow_delta_y)
+
+
+        xml_switch_arrow = doc.createElement(WFConstants.TAG_NAME_SWITCH_ARROW)
+
+        xml_default_arrow = doc.createElement(WFConstants.TAG_NAME_DEFAULT_ARROW)
+
+        xml_default_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+
+        xml_default_arrow_type_content = doc.createTextNode(self.arrow_default.type)
+        xml_default_arrow_type_delta_x_content = doc.createTextNode(self.arrow_default.delta_x)
+        xml_default_arrow_type_delta_y_content = doc.createTextNode(self.arrow_default.delta_y)
+
+        xml_default_arrow_type.appendChild(xml_default_arrow_type_content)
+
+        xml_default_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+        xml_default_arrow_delta_x.appendChild(xml_default_arrow_type_delta_x_content)
+
+        xml_default_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+        xml_default_arrow_delta_y.appendChild(xml_default_arrow_type_delta_y_content)
+
+        xml_default_arrow.appendChild(xml_default_arrow_type)
+        xml_default_arrow.appendChild(xml_default_arrow_delta_x)
+        xml_default_arrow.appendChild(xml_default_arrow_delta_y)
+
+        xml_switch_arrow.appendChild(xml_default_arrow)
+
+        if len(self.arrow_cases) > 0:
+            for arrow_case in arrow_cases:
+                xml_case_arrow = doc.createElement(WFConstants.TAG_NAME_CASE_ARROW)
+
+                xml_case_arrow_name_content = doc.createTextNode(self.arrow_case.name)
+                xml_case_arrow_type_content = doc.createTextNode(self.arrow_case.type)
+                xml_case_arrow_type_delta_x_content = doc.createTextNode(self.arrow_case.delta_x)
+                xml_case_arrow_type_delta_y_content = doc.createTextNode(self.arrow_case.delta_y)
+
+                xml_case_arrow_name = doc.createElement(WFConstants.TAG_NAME_NAME)
+                xml_case_arrow_name.appendChild(xml_case_arrow_name_content)
+
+                xml_case_arrow_type = doc.createElement(WFConstants.TAG_NAME_TYPE)
+                xml_case_arrow_type.appendChild(xml_case_arrow_type_content)
+
+                xml_case_arrow_delta_x = doc.createElement(WFConstants.TAG_NAME_DELTA_X)
+                xml_case_arrow_delta_x.appendChild(xml_case_arrow_type_delta_x_content)
+
+                xml_case_arrow_delta_y = doc.createElement(WFConstants.TAG_NAME_DELTA_Y)
+                xml_case_arrow_delta_y.appendChild(xml_case_arrow_type_delta_y_content)
+
+                xml_case_arrow.appendChild(xml_case_arrow_name)
+                xml_case_arrow.appendChild(xml_case_arrow_type)
+                xml_case_arrow.appendChild(xml_case_arrow_delta_x)
+                xml_case_arrow.appendChild(xml_case_arrow_delta_y)
+
+                xml_switch_arrow.appendChild(xml_case_arrow)
+
+
+
+        xml_arrows_node.appendChild(xml_name_node)
+        xml_arrows_node.appendChild(xml_true_arrow)
+        xml_arrows_node.appendChild(xml_false_arrow)
+        xml_arrows_node.appendChild(xml_switch_arrow)
+
+        return xml_arrows_node
 
 
 class NodeGroup():
@@ -247,7 +811,6 @@ class NodeGroup():
 
 
 class RestRequestGroup(NodeGroup):
-
     def __init__(self, url):
         NodeGroup.__init__(self)
         self.url = url
@@ -280,7 +843,7 @@ class RestRequestGroup(NodeGroup):
         self.request_url = base_var_name + "url"
 
         CREATE_REQUEST = ProcessNode(
-            name="Set " + request_json,
+            name="Set " + self.request_json,
             parameters=Parameters({
                 "input_json": "variable:base_request",
                 "output_json": "variable:" + self.request_json}),
@@ -298,9 +861,9 @@ class RestRequestGroup(NodeGroup):
         SETTING_LOG = ProcessNode(
             name="Log " + method + " params",
             parameters=Parameters({
-                "composite_name_log": "%"+self.request_url+"%",
-                "request_json_log": "%"+self.request_json+"%",
-                "response_json_log": "%"+self.response_json+"%"}),
+                "composite_name_log": "%" + self.request_url + "%",
+                "request_json_log": "%" + self.request_json + "%",
+                "response_json_log": "%" + self.response_json + "%"}),
             class_name=WFConstants.CLASS_NAME_VARIABLE_MAPPER)
 
         HTTP_CHECK = RuleNode(
@@ -333,8 +896,8 @@ class RestRequestGroup(NodeGroup):
             name="Set " + method + " rest error",
             parameters=Parameters({
                 "error_code": "HPSA_WF-001",
-                "error_message": "rest query error %http_code%;" +\
-                                " query params: request: %request_json_log%, url: %composite_name_log%."}),
+                "error_message": "rest query error %http_code%;" + \
+                                 " query params: request: %request_json_log%, url: %composite_name_log%."}),
             class_name=WFConstants.CLASS_NAME_VARIABLE_MAPPER)
 
         SETTING_SY_ERROR = ProcessNode(
@@ -371,7 +934,7 @@ class RestRequestGroup(NodeGroup):
         SY_ERROR_LOG.parameters.insertUpdateValue("log_level", "constant:ERROR")
 
 
-        #Setting right node sequence
+        # Setting right node sequence
         START_LOG.next_node = CREATE_REQUEST.name
         CREATE_REQUEST.next_node = MAKE_REQUEST.name
         MAKE_REQUEST.next_node = SETTING_LOG.name
@@ -403,7 +966,6 @@ class RestRequestGroup(NodeGroup):
 
 
 class SetInitialParamsGroup(NodeGroup):
-
     def __init__(self, wf_name):
         NodeGroup.__init__(self)
 
@@ -422,7 +984,7 @@ class SetInitialParamsGroup(NodeGroup):
             parameters=Parameters(WFConstants.LOG_ORDINARY_PARAMS),
             class_name=WFConstants.CLASS_NAME_LOG)
 
-        LOG_INFO.parameters.insertUpdateValue("log_level","INFORMATIVE")
+        LOG_INFO.parameters.insertUpdateValue("log_level", "INFORMATIVE")
         message = LOG_INFO.parameters.getValue("log_message")
         message = message + " " + wf_name + " started"
         START_LOG.parameters.insertUpdateValue("log_message", message)
@@ -432,11 +994,11 @@ class SetInitialParamsGroup(NodeGroup):
             parameters=Parameters(WFConstants.LOG_ORDINARY_PARAMS),
             class_name=WFConstants.CLASS_NAME_LOG)
 
-        LOG_DEBUG.parameters.insertUpdateValue("log_level","INFORMATIVE")
+        LOG_DEBUG.parameters.insertUpdateValue("log_level", "INFORMATIVE")
         message = LOG_DEBUG.parameters.getValue("log_message")
         message = message + " " + wf_name + " started with request json=%s"
         LOG_DEBUG.parameters.insertUpdateValue("log_message", message)
-        LOG_DEBUG.parameters.insertUpdateValue("param3","request_json")
+        LOG_DEBUG.parameters.insertUpdateValue("param3", "request_json")
 
         GET_PROPERTIES = ProcessNode(
             name=WFVariables.NODE_NAME_GET_PROPERTIES,
@@ -452,7 +1014,7 @@ class SetInitialParamsGroup(NodeGroup):
             parameters=Parameters(WFConstants.CREATE_BASE_SY_REQUEST_PARAMS),
             class_name=WFConstants.CLASS_NAME_JSON_SETTER)
 
-        #Setting right node sequence
+        # Setting right node sequence
         AUDIT.next_node = SET_INITIAL_PARAMS.name
         SET_INITIAL_PARAMS.next_node = LOG_INFO.name
         LOG_INFO.next_node = LOG_DEBUG.name
@@ -466,3 +1028,5 @@ class SetInitialParamsGroup(NodeGroup):
         NodeGroup.injectNode(self, LOG_DEBUG)
         NodeGroup.injectNode(self, GET_PROPERTIES)
         NodeGroup.injectNode(self, SET_SY_URL)
+
+
