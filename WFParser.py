@@ -21,6 +21,7 @@ import re
 #10 Modify SwitchNode constructor
 #11 Modify RuleNode constructor
 #12 Construct more effective tree model from DomTree
+#13 Move xml methods to Handlers
 
 # Helper functions
 def formatXml(file_name):
@@ -56,21 +57,21 @@ class DomManager:
         temp_filename = file_name.split(".xml")[0]
         temp_filename = temp_filename.split("/")[-1]
         self.renameWF(temp_filename)
-            
+
     def overwrightOriginalFile(self):
         if self.need_backup:
             backup_file_name = self.file_name.split(".xml")[0] + "_backup.xml"
             file_backup = open(backup_file_name, 'w')
             file_backup.write(self.dom_tree_backup.toxml(encoding='utf-8'))
-        
+
         file = open(self.file_name, 'w')
         file.write(self.dom_tree.toprettyxml(encoding='utf-8', indent="   "))
         file.close()
-        
+
     def isDomTreeEmpty(self):
         return self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME).length == 0 or \
             self.collection.getElementsByTagName(WFConstants.TAG_NAME_START_NODE).length == 0
-        
+
     def getWFName(self):
         for node in self.collection.childNodes:
             if node.nodeName == WFConstants.TAG_NAME_NAME:
@@ -83,41 +84,41 @@ class DomManager:
                 wf_name_node = node
         for text in wf_name_node.childNodes:
             text.data = unicode(new_name)
-            
+
         self.insertUpdateInitialCasePacket("WORKFLOW_NAME", new_name, "String")
 
     def findLowestPosition(self):
         positions = self.collection.getElementsByTagName(WFConstants.TAG_NAME_POSITION)
         lowest_position = 0
-       
+
         for pos in positions :
             new_pos = pos.getElementsByTagName('Y')[0].childNodes[0].data
             if lowest_position < new_pos:
                 lowest_position = new_pos
         return lowest_position
-        
+
     def casePacketContains(self, var_name):
-        
+
         case_packet = self.collection.getElementsByTagName(WFConstants.TAG_NAME_CASE_PACKET)[0]
         case_packet_variables = case_packet.getElementsByTagName(WFConstants.TAG_NAME_CASE_PACKET_VAR)
-        
+
         for variable in case_packet_variables:
             if variable.getAttribute(WFConstants.ATTRIBUTE_NAME_NAME) == var_name:
                 return True
-        
+
         return False
 
     def initialCasePacketContains(self, var_name):
-        
+
         initial_case_packet = self.collection.getElementsByTagName(WFConstants.TAG_NAME_INIT_CASE_PACKET)[0]
         initial_case_packet_variables = initial_case_packet.getElementsByTagName(WFConstants.TAG_NAME_INIT_CASE_PACKET_VAR)
-        
+
         for variable in initial_case_packet_variables:
             if variable.getAttribute(WFConstants.ATTRIBUTE_NAME_NAME) == var_name:
                 return True
-        
+
         return False
-        
+
     def hasNodeName(self, node_name):
 
         return self.getNode(node_name) is not None
@@ -176,13 +177,69 @@ class DomManager:
                 if name_node.firstChild.nodeValue == new_process_node_name \
                         and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
                     xml_position = name_node.parentNode
-                if name_node.firstChild.nodeValue == new_process_node_name \
-                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+
+                elif name_node.firstChild.nodeValue == new_process_node_name \
+                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
                     xml_arrows = name_node.parentNode
 
+            new_node = ProcessNode(xml_node=new_process_node, xml_position=xml_position, xml_arrows=xml_arrows)
+            allNodes.injectNode(new_node, from_node_name="")
+            removed = xml_position.parentNode.removeChild(xml_position)
+            removed.unlink()
+            removed = xml_arrows.parentNode.removeChild(xml_arrows)
+            removed.unlink()
+            removed = new_process_node.parentNode.removeChild(new_process_node)
+            removed.unlink()
 
+        rule_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_RULE_NODE)
 
+        for new_rule_node in rule_nodes:
+            new_rule_node_name = new_rule_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
 
+            name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
+            for name_node in name_nodes:
+                if name_node.firstChild.nodeValue == new_rule_node_name \
+                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                    xml_position = name_node.parentNode
+
+                elif name_node.firstChild.nodeValue == new_rule_node_name \
+                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
+                    xml_arrows = name_node.parentNode
+
+            new_node = RuleNode(xml_node=new_rule_node, xml_position=xml_position, xml_arrows=xml_arrows)
+            allNodes.injectNode(new_node, from_node_name="")
+            removed = xml_position.parentNode.removeChild(xml_position)
+            removed.unlink()
+            removed = xml_arrows.parentNode.removeChild(xml_arrows)
+            removed.unlink()
+            removed = new_rule_node.parentNode.removeChild(new_rule_node)
+            removed.unlink()
+
+        switch_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_SWITCH_NODE)
+
+        for new_switch_node in switch_nodes:
+            new_switch_node_name = new_switch_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+
+            name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
+            for name_node in name_nodes:
+                if name_node.firstChild.nodeValue == new_switch_node_name \
+                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                    xml_position = name_node.parentNode
+
+                elif name_node.firstChild.nodeValue == new_switch_node_name \
+                        and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
+                    xml_arrows = name_node.parentNode
+
+            new_node = SwitchNode(xml_node=new_switch_node, xml_position=xml_position, xml_arrows=xml_arrows)
+            allNodes.injectNode(new_node, from_node_name="")
+            removed = xml_position.parentNode.removeChild(xml_position)
+            removed.unlink()
+            removed = xml_arrows.parentNode.removeChild(xml_arrows)
+            removed.unlink()
+            removed = new_switch_node.parentNode.removeChild(new_switch_node)
+            removed.unlink()
+
+        return allNodes
 
     def integrateRestGroup(self, node_group):
         self.addNodeGroup(node_group)
@@ -202,14 +259,12 @@ class DomManager:
             self.addNode(set_sy_node)
 
     def addNodeGroup(self, node_group):
-        try:
-            for node in node_group:
+        for node in node_group:
+            self.addNode(node)
+        for ex_node_group in node_group.node_group_list:
+            for node in ex_node_group:
                 self.addNode(node)
-            for ex_node_group in node_group.node_group_list:
-                for node in ex_node_group:
-                    self.addNode(node)
-        except Exception as e:
-            raise e
+
 
     def addHandler(self, handler):
 
@@ -224,32 +279,32 @@ class DomManager:
         else:
             all_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NODES)[0]
             all_nodes.appendChild(node.createXmlNode())
-            
+
             coordinates = self.collection.getElementsByTagName(WFConstants.TAG_NAME_COORDINATES)[0]
 
             coordinates.appendChild(node.arrowsToXml())
-            
+
             arrows = self.collection.getElementsByTagName(WFConstants.TAG_NAME_ARROWS)[0]
             coordinates.insertBefore(node.positionToXml(), arrows)
 
 
     @exception
     def addNodeTest(self, node):
-        
+
         all_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NODES)[0]
         node_to_add = self.createXmlNode(node)
         all_nodes.appendChild(node_to_add)
-          
+
         coordinates = self.collection.getElementsByTagName("Work")[0]
         coordinates_and_arrows = self.createXmlPosAndArrows(node)
         coordinates.appendChild(coordinates_and_arrows[1])
-        
+
         arrows = self.collection.getElementsByTagName(WFConstants.TAG_NAME_ARROWS)[0]
         coordinates.insertBefore(coordinates_and_arrows[0], arrows)
 
     def insertUpdateCasePacket(self, var_name, var_type):
         case_packet = self.collection.getElementsByTagName(WFConstants.TAG_NAME_CASE_PACKET)[0]
-        
+
         if not self.casePacketContains(var_name):
             case_packet_var = self.createXmlCasePacketNode(var_name, var_type)
             case_packet.appendChild(case_packet_var)
@@ -361,7 +416,7 @@ class DomManager:
                 for node in ex_node_group:
                     self.removeNode(node.name)
                     self.removeNextNodeReferences(node.name)
-        
+
 
 if __name__ == '__main__':
 
@@ -370,9 +425,9 @@ if __name__ == '__main__':
         print "Usage: python %s /pathToFile/filename.xml" %sys.argv[0]
     else:
         file_name = sys.argv[1]
-        
+
         dom_manager = DomManager(file_name)
-                 
+
         new_process_node = ProcessNode(name = "logger",
         parameters = Parameters(WFConstants.LOG_ORDINARY_PARAMS),
         class_name = WFConstants.CLASS_NAME_LOG,
@@ -400,10 +455,11 @@ if __name__ == '__main__':
 
         #dom_manager.addNodeTest(rule_node)
         #dom_manager.addNode(rule_node)
-        node_test = dom_manager.getNode('call getCustomerById11')
+        node_test_group = dom_manager.getAllNodesNodeGroup()
         #dom_manager.removeNextNodeReferences('Init params')
-        dom_manager.removeNode('call getCustomerById11')
-        dom_manager.addNode(node_test)
+        #dom_manager.removeNode('call getCustomerById11')
+        #dom_manager.addNode(new_process_node)
+        dom_manager.addNodeGroup(node_test_group)
 
         try:
             #print node_test
@@ -418,39 +474,38 @@ if __name__ == '__main__':
 
         except Exception as e:
             print e
-        
-    
-                    
 
-        
-        
-        
-        
-        
-        
-        
 
-       
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
-        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

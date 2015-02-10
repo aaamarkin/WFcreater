@@ -177,7 +177,10 @@ class ProcessNode(Node):
                 param_dict[xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_NAME)] = \
                     xml_param.getAttribute(WFConstants.ATTRIBUTE_NAME_VALUE)
             params = Parameters(param_dict)
-            node_next_node = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NEXT_NODE)[0].childNodes[0].data
+            if len(xml_node.getElementsByTagName(WFConstants.TAG_NAME_NEXT_NODE)) > 0:
+                node_next_node = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NEXT_NODE)[0].childNodes[0].data
+            else:
+                node_next_node = next_node
         else:
             node_name = name
             node_class_name = class_name
@@ -391,7 +394,7 @@ class RuleNode(Node):
 
         xml_action_node.appendChild(xml_class_name_node)
 
-        for parameter in node.parameters:
+        for parameter in self.parameters:
 
             xml_param_node = doc.createElement(WFConstants.TAG_NAME_PARAM)
             xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, parameter.name)
@@ -577,7 +580,7 @@ class SwitchNode(Node):
 
         xml_action_node.appendChild(xml_class_name_node)
 
-        for parameter in node.parameters:
+        for parameter in self.parameters:
 
             xml_param_node = doc.createElement(WFConstants.TAG_NAME_PARAM)
             xml_param_node.setAttribute(WFConstants.ATTRIBUTE_NAME_NAME, parameter.name)
