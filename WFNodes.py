@@ -79,6 +79,10 @@ class Parameters:
         else:
             self.parameters.append(parameter)
 
+    def removeParameter(self, parameter):
+        if self.contains(parameter.name):
+            self.parameters = [remain_parameter for remain_parameter in self.parameters if remain_parameter.name != parameter.name]
+            self.index = len(self.parameters)
 
     def __repr__(self):
         string_to_return = ""
@@ -750,7 +754,9 @@ class NodeGroup():
                                 for actual_group in self.node_group_list]
 
     def injectNode(self, node, from_node_name=""):
-        node.previous_node_names.append(from_node_name)
+        #print node
+        if len(from_node_name) > 0 and from_node_name not in node.previous_node_names:
+            node.previous_node_names.append(from_node_name)
         if len(from_node_name) > 0 and self.contains(from_node_name):
             self.getNode(from_node_name).next_node = node.name
         if not self.contains(node.name):

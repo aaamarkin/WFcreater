@@ -115,32 +115,19 @@
          <Next-Node>http code == 200?</Next-Node>
       </Process-Node>
       <Process-Node>
-         <Name>Call getMyDataByIdentifier</Name>
-         <Action>
-            <Class-Name>ru.deltasolutions.common.activator.mwfm.http.nodes.MakeRestRequest</Class-Name>
-            <Param name="request_url" value="variable:get_my_data_by_identifier_url"/>
-            <Param name="response_code" value="variable:http_code"/>
-            <Param name="response_json" value="variable:get_my_data_by_identifier_response_json"/>
-            <Param name="request_type" value="constant:POST"/>
-            <Param name="request_json" value="variable:get_my_data_by_identifier_request_json"/>
-         </Action>
-         <Next-Node>Log getMyDataByIdentifier params</Next-Node>
-      </Process-Node>
-      <Process-Node>
          <Name>Set get_my_data_by_identifier_request_json</Name>
          <Action>
             <Class-Name>ru.deltasolutions.common.activator.mwfm.json.nodes.JsonSetter</Class-Name>
             <Param name="input_json" value="variable:base_request"/>
             <Param name="output_json" value="variable:get_my_data_by_identifier_request_json"/>
          </Action>
-         <Next-Node>Call getMyDataByIdentifier</Next-Node>
       </Process-Node>
       <Process-Node>
          <Name>LogDebug: getMyDataByIdentifier</Name>
          <Action>
             <Class-Name>com.hp.ov.activator.mwfm.component.builtin.Log</Class-Name>
             <Param name="component_name" value="variable:WORKFLOW_NAME"/>
-            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s:  started rest request getMyDataByIdentifier"/>
+            <Param name="log_message" value="Transaction ID=%s (JobId=%s), initiator=%s: started rest request getMyDataByIdentifier"/>
             <Param name="param0" value="variable:transaction_id"/>
             <Param name="param1" value="variable:JOB_ID"/>
             <Param name="param2" value="variable:transaction_initiator"/>
@@ -148,6 +135,18 @@
             <Param name="log_manager" value="variable:log_manager"/>
          </Action>
          <Next-Node>Set get_my_data_by_identifier_request_json</Next-Node>
+      </Process-Node>
+      <Process-Node>
+         <Name>Call getMyDataByIdentifier</Name>
+         <Action>
+            <Class-Name>ru.deltasolutions.common.activator.mwfm.http.nodes.MakeRestRequest</Class-Name>
+            <Param name="response_code" value="variable:http_code"/>
+            <Param name="request_type" value="constant:POST"/>
+            <Param name="response_json" value="variable:get_my_data_by_identifier_response_json"/>
+            <Param name="request_url" value="variable:get_my_data_by_identifier_url"/>
+            <Param name="request_json" value="variable:get_my_data_by_identifier_request_json"/>
+         </Action>
+         <Next-Node>Log getMyDataByIdentifier params</Next-Node>
       </Process-Node>
    </Nodes>
    <Case-Packet>
@@ -267,13 +266,6 @@
          <Height>48</Height>
       </Position>
       <Position>
-         <Name>Call getMyDataByIdentifier</Name>
-         <X>500</X>
-         <Y>700</Y>
-         <Width>100</Width>
-         <Height>48</Height>
-      </Position>
-      <Position>
          <Name>Set get_my_data_by_identifier_request_json</Name>
          <X>500</X>
          <Y>600</Y>
@@ -284,6 +276,13 @@
          <Name>LogDebug: getMyDataByIdentifier</Name>
          <X>500</X>
          <Y>500</Y>
+         <Width>100</Width>
+         <Height>48</Height>
+      </Position>
+      <Position>
+         <Name>Call getMyDataByIdentifier</Name>
+         <X>500</X>
+         <Y>700</Y>
          <Width>100</Width>
          <Height>48</Height>
       </Position>
@@ -405,19 +404,6 @@
          </False-Arrow>
       </Arrows>
       <Arrows>
-         <Name>Call getMyDataByIdentifier</Name>
-         <True-Arrow>
-            <Type>0</Type>
-            <DeltaX>0</DeltaX>
-            <DeltaY>0</DeltaY>
-         </True-Arrow>
-         <False-Arrow>
-            <Type>0</Type>
-            <DeltaX>0</DeltaX>
-            <DeltaY>0</DeltaY>
-         </False-Arrow>
-      </Arrows>
-      <Arrows>
          <Name>Set get_my_data_by_identifier_request_json</Name>
          <True-Arrow>
             <Type>0</Type>
@@ -432,6 +418,19 @@
       </Arrows>
       <Arrows>
          <Name>LogDebug: getMyDataByIdentifier</Name>
+         <True-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </True-Arrow>
+         <False-Arrow>
+            <Type>0</Type>
+            <DeltaX>0</DeltaX>
+            <DeltaY>0</DeltaY>
+         </False-Arrow>
+      </Arrows>
+      <Arrows>
+         <Name>Call getMyDataByIdentifier</Name>
          <True-Arrow>
             <Type>0</Type>
             <DeltaX>0</DeltaX>

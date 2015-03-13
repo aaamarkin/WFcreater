@@ -4,7 +4,7 @@ from xml.dom.minidom import parse
 import xml.dom.minidom
 from xml.dom.minidom import Document
 import WFNodes
-from WFNodes import Parameters, Parameter, ProcessNode, RuleNode, NodeGroup, RestRequestGroup
+from WFNodes import Parameters, Parameter, ProcessNode, RuleNode, SwitchNode, NodeGroup, RestRequestGroup
 from WFExceptions import DuplicateNodeError, DuplicateParamError
 import re
 
@@ -22,6 +22,9 @@ import re
 #11 Modify RuleNode constructor
 #12 Construct more effective tree model from DomTree
 #13 Move xml methods to Handlers
+#14 Change empty string class fields to None
+#15 HasAnyNodes WF method
+#16 Check for type field in parameter
 
 # Helper functions
 def formatXml(file_name):
@@ -76,6 +79,13 @@ class DomManager:
         for node in self.collection.childNodes:
             if node.nodeName == WFConstants.TAG_NAME_NAME:
                 return node.childNodes[0].nodeValue
+
+    def getStartNodeName(self):
+        name = None
+        start_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_START_NODE)
+        if len(start_nodes) > 0:
+            name = start_nodes[0].childNodes[0].data
+        return name
 
     def renameWF(self, new_name):
 
@@ -134,12 +144,34 @@ class DomManager:
                 if exist_node_name == node_name:
                     xml_node = node
 
+                    name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
+                    for name_node in name_nodes:
+                        if name_node.firstChild.nodeValue == node_name \
+                            and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                            xml_position = name_node.parentNode
+                        if name_node.firstChild.nodeValue == node_name \
+                            and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
+                            xml_arrows = name_node.parentNode
+
+                    return ProcessNode(xml_node=xml_node, xml_position=xml_position, xml_arrows=xml_arrows)
+
             rule_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_RULE_NODE)
 
             for node in rule_nodes:
                 exist_node_name = node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
                 if exist_node_name == node_name:
                     xml_node = node
+
+                    name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
+                    for name_node in name_nodes:
+                        if name_node.firstChild.nodeValue == node_name \
+                                and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                            xml_position = name_node.parentNode
+                        if name_node.firstChild.nodeValue == node_name \
+                                and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
+                            xml_arrows = name_node.parentNode
+
+                    return RuleNode(xml_node=xml_node, xml_position=xml_position, xml_arrows=xml_arrows)
 
             switch_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_SWITCH_NODE)
 
@@ -148,21 +180,63 @@ class DomManager:
                 if exist_node_name == node_name:
                     xml_node = node
 
-            if xml_node is not None:
-                new_process_node_name = xml_node.getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+                    name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
+                    for name_node in name_nodes:
+                        if name_node.firstChild.nodeValue == node_name \
+                                and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
+                            xml_position = name_node.parentNode
+                        if name_node.firstChild.nodeValue == node_name \
+                                and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
+                            xml_arrows = name_node.parentNode
 
-                name_nodes = self.collection.getElementsByTagName(WFConstants.TAG_NAME_NAME)
-                for name_node in name_nodes:
-                    if name_node.firstChild.nodeValue == new_process_node_name \
-                            and name_node.parentNode.nodeName == WFConstants.TAG_NAME_POSITION:
-                        xml_position = name_node.parentNode
-                    if name_node.firstChild.nodeValue == new_process_node_name \
-                            and name_node.parentNode.nodeName == WFConstants.TAG_NAME_ARROWS:
-                        xml_arrows = name_node.parentNode
-
-                xml_node = ProcessNode(xml_node=xml_node, xml_position=xml_position, xml_arrows=xml_arrows)
+                    return SwitchNode(xml_node=xml_node, xml_position=xml_position, xml_arrows=xml_arrows)
 
         return xml_node
+
+    def getAllNodesNodeGroupTest(self):
+        allNodes = NodeGroup()
+        node_queue = []
+        previous_nodes_queue = [""]
+        start_node_name = self.getStartNodeName()
+        if start_node_name is None:
+            temp = self.collection.getElementsByTagName(WFConstants.TAG_NAME_PROCESS_NODE)
+            start_node_name = temp[0].getElementsByTagName(WFConstants.TAG_NAME_NAME)[0].childNodes[0].data
+        node_queue.append(start_node_name)
+
+        while len(node_queue) > 0:
+
+            current_name = node_queue.pop()
+
+            if not allNodes.contains(current_name):
+                current_node = self.getNode(current_name)
+
+                allNodes.injectNode(current_node, from_node_name=previous_nodes_queue.pop())
+                #current_node.previous_node_names.append(previous_nodes_queue.pop())
+                if isinstance(current_node, ProcessNode):
+                    if len(current_node.next_node) > 0:
+                        node_queue.append(current_node.next_node)
+                    previous_nodes_queue.append(current_node.name)
+                elif isinstance(current_node, RuleNode):
+                    if len(current_node.next_node_false) > 0:
+                        node_queue.append(current_node.next_node_false)
+                    previous_nodes_queue.append(current_node.name)
+                    if len(current_node.next_node_true) > 0:
+                        node_queue.append(current_node.next_node_true)
+                    previous_nodes_queue.append(current_node.name)
+
+                elif isinstance(current_node, SwitchNode):
+                    for case_node_name in current_node.next_node_cases.values():
+                        if len(case_node_name) > 0:
+                            node_queue.append(case_node_name)
+                        previous_nodes_queue.append(current_node.name)
+                        if len(current_node.next_node_default) > 0:
+                            node_queue.append(current_node.next_node_default)
+                        previous_nodes_queue.append(current_node.name)
+
+
+                self.removeNode(current_name)
+
+
 
     def getAllNodesNodeGroup(self):
         allNodes = NodeGroup()
@@ -433,34 +507,81 @@ if __name__ == '__main__':
         class_name = WFConstants.CLASS_NAME_LOG,
         x = "100", y = "100", next_node = "Second json setter")
 
-        second_node = ProcessNode(name = "Second json setter",
-        parameters = Parameters({"output_json":"request_json"}),
-        class_name = WFConstants.CLASS_NAME_JSON_SETTER,
-        x = "100", y = "200")
-
-        rule_node = RuleNode(name = "Equals?",
-        parameters = Parameters(WFConstants.EQUALS_PARAMS),
-        class_name = WFConstants.CLASS_NAME_EQUALS,
-        next_node_true = "Equals?122",
-        next_node_false = "logger",
-        x = "100", y = "300")
-
-        rule_node_2 = RuleNode(name = "Equals?122",
-        parameters = Parameters(WFConstants.EQUALS_PARAMS),
-        class_name = WFConstants.CLASS_NAME_EQUALS,
-        next_node_true = "logger",
-        next_node_false = "Second json setter",
-        x = "300", y = "200")
-
-
         #dom_manager.addNodeTest(rule_node)
         #dom_manager.addNode(rule_node)
-        node_test_group = dom_manager.getAllNodesNodeGroup()
+        node_test_group = dom_manager.getAllNodesNodeGroupTest()
         #dom_manager.removeNextNodeReferences('Init params')
         #dom_manager.removeNode('call getCustomerById11')
         #dom_manager.addNode(new_process_node)
-        dom_manager.addNodeGroup(node_test_group)
+        #dom_manager.addNodeGroup(node_test_group)
+        for node in node_test_group:
+            previousNodes = []
+            if node.class_name == WFConstants.CLASS_NAME_MAKE_REST_REQUEST:
+                http_false_node_list = []
+                sy_false_node_list = []
+                nodes_to_delete_list = []
+                nodes_to_delete_list.append(node.name)
+                rest_previous_nodes = node.previous_node_names
+                rest__name = node.name
+                rest_url = node.parameters.getValue('request_url')
+                rest_request = node.parameters.getValue('request_json')
+                rest_response = node.parameters.getValue('response_json')
+                http_check_node = node_test_group.getNode(node.next_node)
+                nodes_to_delete_list.append(http_check_node.name)
+                if not isinstance(http_check_node, RuleNode):
+                    print 'Expected http check node'
+                http_check_false = node_test_group.getNode(http_check_node.next_node_false)
+                http_check_true = node_test_group.getNode(http_check_node.next_node_true)
+                http_false_node_list.append(http_check_false.name)
+                nodes_to_delete_list.append(http_check_false.name)
+                while http_check_false.class_name != WFConstants.CLASS_NAME_VARIABLE_MAPPER:
+                    http_check_false = node_test_group.getNode(http_check_false.next_node)
+                    http_false_node_list.append(http_check_false.name)
+                    nodes_to_delete_list.append(http_check_false.name)
+                http_false_node_list.append(http_check_false.name)
+                while http_check_true.class_name != WFConstants.CLASS_NAME_JSON_GETTER:
+                    if http_check_true.class_name != WFConstants.CLASS_NAME_JSON_GETTER:
+                        print "Alarm not getter"
+                    http_check_true = node_test_group.getNode(http_check_true.next_node)
+                    nodes_to_delete_list.append(http_check_false.name)
+                getter_node = http_check_true
+                getter_params_dict = {}
+                for parameter in getter_node.parameters:
+                    if 'path' in parameter.name:
+                        if parameter.value == 'errorCode':
+                            error_code_var = getter_params.getValue('value' + parameter.name[-1])
+                        elif parameter.value == 'errorMessage':
+                            error_message_var = getter_params.getValue('value' + parameter.name[-1])
+                        else:
+                            getter_params_dict[parameter.value] = getter_params.getValue('value' + parameter.name[-1])
 
+                sy_check_node = node_test_group.getNode(getter_node.next_node)
+                nodes_to_delete_list.append(sy_check_node.name)
+                if not isinstance(sy_check, RuleNode):
+                    print 'Expected sy check node'
+                sy_check_false = node_test_group.getNode(sy_check_node.next_node_false)
+                sy_check_true = node_test_group.getNode(sy_check_node.next_node_true)
+                sy_false_node_list.append(sy_check_false.name)
+                nodes_to_delete_list.append(sy_check_false.name)
+                while sy_check_false.class_name != WFConstants.CLASS_NAME_VARIABLE_MAPPER:
+                    sy_check_false = node_test_group.getNode(sy_check_false.next_node)
+                    sy_false_node_list.append(sy_check_false.name)
+                    nodes_to_delete_list.append(sy_check_false.name)
+                sy_false_node_list.append(sy_false_node_list.name)
+
+                if sy_check_true.class_name == WFConstants.CLASS_NAME_LOG:
+                    sy_check_true = sy_check_true.next_node
+
+                    if sy_check_true.class_name == WFConstants.CLASS_NAME_JSON_GETTER:
+
+
+
+
+
+
+
+
+        dom_manager.overwrightOriginalFile()
         try:
             #print node_test
             #dom_manager.addNodeGroup(restGroup)
@@ -470,7 +591,7 @@ if __name__ == '__main__':
 
             #dom_manager.renameWF("Renamed_WF")
 
-            dom_manager.overwrightOriginalFile()
+            #dom_manager.overwrightOriginalFile()
 
         except Exception as e:
             print e
